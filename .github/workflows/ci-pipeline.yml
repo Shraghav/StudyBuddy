@@ -1,0 +1,28 @@
+name: Backend CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Runs docker-compose from the root
+      - name: Start services with Docker Compose
+        run: docker-compose up -d
+
+      - name: Wait for database
+        run: sleep 5
+
+      # Tests the API
+      - name: Test FastAPI Health
+        run: curl -f http://localhost:8000/docs || exit 1
+
+      - name: Stop services
+        run: docker-compose down
