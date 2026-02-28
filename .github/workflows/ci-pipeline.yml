@@ -25,4 +25,4 @@ jobs:
         run: curl -f http://localhost:8000/docs || exit 1
 
       - name: Stop services
-        run: docker-compose down
+        run: docker compose down
