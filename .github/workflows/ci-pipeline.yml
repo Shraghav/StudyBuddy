@@ -3,7 +3,7 @@ name: Backend CI Pipeline
 on:
   push:
     branches:
-      - main
+      - initial_backend_setup
 
 jobs:
   build-and-test:
@@ -15,7 +15,7 @@ jobs:
 
       # Runs docker-compose from the root
       - name: Start services with Docker Compose
-        run: docker-compose up -d
+        run: docker compose up -d
 
       - name: Wait for database
         run: sleep 5
