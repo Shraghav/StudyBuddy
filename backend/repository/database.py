@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator
 from dotenv import load_dotenv
 load_dotenv()
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker, create_async_engine)
 from sqlalchemy.orm import declarative_base
 
@@ -20,7 +21,7 @@ Base = declarative_base()
 
 async def create_db():
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
