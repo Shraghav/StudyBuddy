@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from dto.chat_dto import (BulkDeleteRequest, ChatRequest, SessionCreate, SessionRenameRequest)
+from dto.chat_dto import (BulkDeleteRequest, ChatRequest, SessionCreate,
+                          SessionRenameRequest)
 from fastapi import APIRouter, Depends, HTTPException
 from repository.database import get_async_session
 from services.chat_service import ChatService

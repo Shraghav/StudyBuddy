@@ -2,12 +2,14 @@ import os
 from typing import List
 from uuid import UUID
 
+from dotenv import load_dotenv
 from dto.document_dto import DocumentRenameRequest, DocumentResponse
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from repository.database import get_async_session
 from services.document_service import DocumentService
 from sqlalchemy.ext.asyncio import AsyncSession
 
+load_dotenv()
 router = APIRouter(prefix="/documents", tags=["Documents"])
 os.environ["GOOGLE_API_KEY"] = os.getenv('EMBEDDING_KEY')
 

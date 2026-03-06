@@ -1,7 +1,19 @@
-pytest
-httpx
+# Web Server & Framework
 fastapi
 uvicorn
+
+# Database & ORM
 sqlalchemy[asyncio]
 asyncpg
 pgvector
+
+# AI & LangChain
+langchain
+langchain-community
+langchain-google-genai
+pypdf
+
+# Testing & Utilities
+pytest
+httpx
+python-multipart
