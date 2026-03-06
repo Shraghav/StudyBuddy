@@ -1,0 +1,12 @@
+backend/.env
+backend/__pycache__/main.cpython-314.pyc
+backend/controller/__pycache__/chat_controller.cpython-314.pyc
+backend/controller/__pycache__/document_controller.cpython-314.pyc
+backend/dto/__pycache__/chat_dto.cpython-314.pyc
+backend/dto/__pycache__/document_dto.cpython-314.pyc
+backend/repository/__pycache__/chat_repository.cpython-314.pyc
+backend/repository/__pycache__/database.cpython-314.pyc
+backend/repository/__pycache__/document_repository.cpython-314.pyc
+backend/repository/__pycache__/models.cpython-314.pyc
+backend/services/__pycache__/chat_service.cpython-314.pyc
+backend/services/__pycache__/document_service.cpython-314.pyc

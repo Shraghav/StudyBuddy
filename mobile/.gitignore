@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+<<<<<<< HEAD
+__pycache__/
+=======
+>>>>>>> 94aa813d37f63da4b2a266c865a83e6b96315bf2

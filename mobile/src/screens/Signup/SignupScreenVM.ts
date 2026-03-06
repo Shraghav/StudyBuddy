@@ -46,7 +46,7 @@ export const SignupVM = () => {
       navigation.navigate("SignIn");
       setIsLoading(true);
     } catch (error) {
-      console.log("Error occured in handleSignup:", error);
+      console.error("Error occured in handleSignup:", error);
     } finally {
       setIsLoading(false);
     }

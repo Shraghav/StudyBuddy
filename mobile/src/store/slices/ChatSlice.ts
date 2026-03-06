@@ -12,6 +12,7 @@ export interface ChatSession {
   title: string;
   messages: Message[];
   attachedDocName?: string;
+  attachedDocId?: string;
 }
 
 interface ChatState {
@@ -46,7 +47,6 @@ const chatSlice = createSlice({
         session.messages.push(action.payload.message);
       }
     },
-
     renameSession: (
       state,
       action: PayloadAction<{ id: string; newTitle: string }>,
@@ -65,15 +65,43 @@ const chatSlice = createSlice({
         state.currentSessionId = null;
       }
     },
+    removeFiles: (state, action: PayloadAction<string[]>) => {
+      const deletedIds = action.payload; 
+
+      state.sessions = state.sessions.map((session) => {
+        if (
+          session.attachedDocId &&
+          deletedIds.includes(session.attachedDocId)
+        ) {
+          return {
+            ...session,
+            attachedDocId: undefined,
+            attachedDocName: undefined
+          };
+        }
+        return session;
+      });
+    },
     attachDocumentToSession: (
       state,
-      action: PayloadAction<{ sessionId: string; docName: string }>,
+      action: PayloadAction<{ sessionId: string; docName: string, docId:string }>,
     ) => {
       const session = state.sessions.find(
         (s) => s.id === action.payload.sessionId,
       );
-      if (session) session.attachedDocName = action.payload.docName;
+      if (session) {
+        session.attachedDocName = action.payload.docName;
+        session.attachedDocId = action.payload.docId;
+      }
     },
+    setSessions: (state, action: PayloadAction<ChatSession[]>) => {
+      state.sessions = action.payload.filter(
+        (s) => s.id !== null && s.id !== undefined,
+      );
+      if (action.payload.length > 0 && !state.currentSessionId) {
+        state.currentSessionId = action.payload[0].id;
+      }
+    }
   },
 });
 
@@ -84,5 +112,7 @@ export const {
   renameSession,
   removeSessions,
   attachDocumentToSession,
+  setSessions,
+  removeFiles,
 } = chatSlice.actions;
 export default chatSlice.reducer;

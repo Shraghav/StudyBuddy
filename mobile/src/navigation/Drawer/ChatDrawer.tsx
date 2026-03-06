@@ -10,7 +10,6 @@ import { ChatSession } from '../../store/slices/ChatSlice';
 import { Images } from '../../utils/Images';
 import { ChatDrawerType, ChatDrawerVM } from './ChatDrawerVM';
 
-
 const Drawer = createDrawerNavigator();
 
 interface CustomDrawerProps extends DrawerContentComponentProps {
@@ -26,12 +25,12 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                 style={[styles.historyItem, isActive && styles.historyItemActive, isSelected && styles.selectedItem]}
                 onPress={() => {
                     if (vm.isSelectionMode) vm.toggleSelection(session.id);
-                    else { vm.changeSession(session.id); props.navigation.closeDrawer(); }
+                    else vm.changeSession(session.id);
                 }}
                 onLongPress={() => !vm.isSelectionMode && vm.openModal(session.id, session.title)}
             >
                 <Text style={[styles.historyText, isActive && styles.historyTextActive]} numberOfLines={1}>
-                    💬 {session.title}
+                    🕛 {session.title}
                 </Text>
             </TouchableOpacity>
         )
@@ -70,9 +69,9 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
             </View>
 
             {/* Passing items */}
-            {vm.sessions.map((session: ChatSession) => (
+            {vm.sessions.map((session: ChatSession, index) => (
                 <SessionItem
-                    key={session.id}
+                    key={session.id || `temp-${index}`}
                     session={session}
                     isActive={session.id === vm.currentSessionId && !vm.isSelectionMode}
                     isSelected={vm.selectedIds.includes(session.id)}

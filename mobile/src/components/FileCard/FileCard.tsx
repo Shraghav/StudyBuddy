@@ -5,18 +5,16 @@ import { Images } from '../../utils/Images';
 interface FileCardProps {
     name: string;
     onPress: () => void;
-    onLongPress: () => void;
     style: ViewStyle
 }
 
-export const FileCard = ({ name, onPress, onLongPress, style }: FileCardProps) => (
-    <TouchableOpacity style={[styles.card, style]} onPress={onPress} onLongPress={onLongPress}>
+export const FileCard = ({ name, onPress, style }: FileCardProps) => (
+    <TouchableOpacity style={[styles.card, style]} onPress={onPress}>
         <View style={styles.iconContainer}>
             <Image source={Images.file} style={{height:30, width:30}} resizeMode='contain' />
         </View>
         <View style={styles.textContainer}>
             <Text style={styles.fileName} numberOfLines={1}>{name}</Text>
-            <Text style={styles.subText}>Tap to view</Text>
         </View>
     </TouchableOpacity>
 );

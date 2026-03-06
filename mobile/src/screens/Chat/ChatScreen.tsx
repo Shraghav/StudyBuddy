@@ -1,11 +1,11 @@
 import React from 'react';
-import { FlatList, Image, KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import DrawerMenu from '../../components/Drawer/Drawer';
-import { ChatScreenVM } from './ChatScreenVM';
 import { CustomButton } from '../../components/CustomButton/CustomButton';
+import DrawerMenu from '../../components/Drawer/Drawer';
 import { Images } from '../../utils/Images';
+import { ChatScreenVM } from './ChatScreenVM';
 
 export const ChatScreen = () => {
   const vm = ChatScreenVM();
@@ -30,26 +30,21 @@ export const ChatScreen = () => {
           </View> :
             <View style={styles.subContainer}>
               <View style={styles.docBanner}>
-                <TouchableOpacity
-                  onPress={vm.viewAttachedFile}
+                <View
                   style={styles.attachedFileContainer}
                 >
                   <Text style={styles.docText}>
-                    {vm.currentSession?.attachedDocName ? (
+                    {vm.attachedFile?.name ? (
                       <>
                         <Text style={styles.fileNameText}>
-                          📄 {vm.currentSession.attachedDocName}
-                        </Text>
-                        {"\n\t\t "}
-                        <Text style={styles.tapToViewText}>
-                          Tap to view
+                          📄 {vm.attachedFile.name}
                         </Text>
                       </>
                     ) : (
                       "No document attached"
                     )}
                   </Text>
-                </TouchableOpacity>
+                </View>
                 <CustomButton onPress={vm.openDocModal} viewstyle={styles.attachBtn} textStyle={styles.attachBtnText} title='+ Attach PDF' />
               </View>
 
@@ -64,6 +59,15 @@ export const ChatScreen = () => {
                     <Text style={item.sender === 'user' ? styles.userText : styles.aiText}>{item.text}</Text>
                   </View>
                 )}
+                ListFooterComponent={
+                  vm.isChatLoading ? (
+                    <View style={[styles.bubble, styles.aiBubble, { width: 50, padding: 10 }]}>
+                      <Text style={[styles.aiText, { fontWeight: 'bold', fontSize: 20 }]}>
+                        {vm.dots}
+                      </Text>
+                    </View>
+                  ) : null
+                }
               />
 
               <View style={styles.inputContainer}>
@@ -74,8 +78,9 @@ export const ChatScreen = () => {
                   value={vm.inputText}
                   onChangeText={vm.changeInputText}
                   multiline
+                  editable={!vm.isChatLoading}
                 />
-                <TouchableOpacity onPress={vm.sendMessage}>
+                <TouchableOpacity onPress={vm.sendMessage} disabled={vm.isChatLoading}>
                   <Image source={Images.send} style={{ width: 30, height: 30 }} resizeMode='contain' />
                 </TouchableOpacity>
               </View>
@@ -95,10 +100,17 @@ export const ChatScreen = () => {
                 keyExtractor={(item) => item.id}
                 style={{ maxHeight: 300 }}
                 renderItem={({ item }) => (
-                  <TouchableOpacity style={styles.docItem} onPress={() => vm.selectDocForChat(item.name)}>
+                  <TouchableOpacity style={styles.docItem} onPress={() => vm.selectDocForChat(item)}>
                     <Text style={styles.docItemText}>📄 {item.name}</Text>
                   </TouchableOpacity>
-                )}
+                  )}
+                  ListFooterComponent={
+                    vm.isChatLoading ? (
+                      <View style={[styles.bubble, styles.aiBubble, { width: 60, alignItems: 'center' }]}>
+                        <ActivityIndicator size="small" color="#00796B" />
+                      </View>
+                    ) : null
+                  }
               />
             )}
 

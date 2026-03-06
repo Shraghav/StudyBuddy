@@ -1,17 +1,18 @@
 import * as DocumentPicker from "expo-document-picker";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
-import FileViewer from "react-native-file-viewer";
 import "react-native-get-random-values";
 import { useDispatch, useSelector } from "react-redux";
-import { v4 as uuidv4 } from "uuid";
 
+import { apiClient } from "../../services/api/api_client";
 import { RootState } from "../../store";
 import {
   addFiles,
   removeFile,
+  setFiles,
   updateFileName,
 } from "../../store/slices/FileSlice";
+import { removeFiles } from "../../store/slices/ChatSlice";
 
 export const UploadScreenVM = () => {
   // hooks
@@ -22,6 +23,20 @@ export const UploadScreenVM = () => {
   const [docName, setdocName] = useState("");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Fetch existing files from Postgres on load
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const response = await apiClient.get("/documents/");
+        dispatch(setFiles(response.data));
+      } catch (error) {
+        console.error("Error fetching files from API:", error);
+      }
+    };
+    fetchFiles();
+  }, []);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#ffffff" },
@@ -83,7 +98,7 @@ export const UploadScreenVM = () => {
     iconDimensions: { height: 20, width: 20 },
   });
 
-  // Model function to open, close modal and confirming rename
+  // Model function to open, close modal
   const openModal = (id: string, currentName: string) => {
     try {
       setCurrentFileId(id);
@@ -102,24 +117,34 @@ export const UploadScreenVM = () => {
       console.error("Error occured in closeModal:", error);
     }
   };
-  const confirmRename = () => {
+
+  // Confirming rename with backend and updating UI
+  const confirmRename = async () => {
     try {
       if (currentFileId && docName.trim()) {
-        const finalName = docName.trim() + ".pdf";
+        const finalName = docName.trim().endsWith(".pdf")
+          ? docName.trim()
+          : `${docName.trim()}.pdf`;
+
+        await apiClient.patch(`/documents/${currentFileId}/rename`, {
+          new_name: finalName,
+        });
+
         dispatch(updateFileName({ id: currentFileId, newName: finalName }));
         closeModal();
       }
     } catch (error) {
-      console.error("Error occured in confirmRename:", error);
+      console.error("Error in confirmRename:", error);
     }
   };
-  const handleDocName = (name:string) => {
+
+  const handleDocName = (name: string) => {
     try {
-      setdocName(name)
+      setdocName(name);
     } catch (error) {
-      console.error("Error in setDocName:", error)
+      console.error("Error in setDocName:", error);
     }
-  }
+  };
 
   // selecting files and toggling the selected files
   const enterSelectionMode = () => {
@@ -154,13 +179,16 @@ export const UploadScreenVM = () => {
     }
   };
 
-  // deleting selected files and cancelling scenario
-  const deleteSelectedFiles = () => {
+  // deleting selected files and exiting selection
+  const deleteSelectedFiles = async () => {
     try {
+      dispatch(removeFiles(selectedIds));
       selectedIds.forEach((id) => dispatch(removeFile(id)));
+      await apiClient.delete("/documents/batch", { data: selectedIds });
+      
       exitSelection();
     } catch (error) {
-      console.error("Error occured in deleteSelectedFiles:", error);
+      console.error("Error in deleteSelectedFiles:", error);
     }
   };
   const exitSelection = () => {
@@ -172,56 +200,57 @@ export const UploadScreenVM = () => {
     }
   };
 
-  // Picking up pdfs from mobile files
+  // Picking documents and storing the embeddings
   const pickDocuments = async () => {
     try {
+      // Document picker
       const result = await DocumentPicker.getDocumentAsync({
         type: "application/pdf",
         multiple: true,
         copyToCacheDirectory: true,
       });
-
       if (!result.canceled) {
-        const newFiles = result.assets.map((asset) => ({
-          id: uuidv4(),
-          uri: asset.uri,
-          name: asset.name,
-          uploadDate: new Date().toISOString(),
-        }));
-        dispatch(addFiles(newFiles));
+        setIsUploading(true);
+        for (const asset of result.assets) {
+          // Append the data
+          const formData = new FormData();
+          const cleanName = decodeURIComponent(
+            asset.name || `upload_${Date.now()}.pdf`,
+          );
+          formData.append("file", {
+            uri: asset.uri,
+            name: cleanName,
+            type: "application/pdf",
+          } as any);
+
+          // Callling backend to store the data
+          const response = await apiClient.post(
+            `/documents/upload`,
+            formData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            },
+          );
+          const localFileWithServerId = {
+            ...response.data,
+            uri: asset.uri,
+          };
+
+          dispatch(addFiles([localFileWithServerId]));
+        }
       }
     } catch (err) {
-      console.error("Error picking documents:", err);
-    }
-  };
-
-  // Viewing and renaming file
-  const viewFile = async (uri: string) => {
-    try {
-      await FileViewer.open(uri, {
-        showOpenWithDialog: true,
-        showAppsSuggestions: true,
-      });
-    } catch (error) {
-      console.error("Error occured in viewFile:", error);
-    }
-  };
-  const renameFile = async (id: string, newName: string) => {
-    try {
-      const docName = newName.endsWith(".pdf") ? newName : `${newName}.pdf`;
-      dispatch(updateFileName({ id, newName: docName }));
-      return true;
-    } catch (error) {
-      console.error("Error occured in rename File:", error);
-      return false;
+      console.error("Error picking/uploading document:", err);
+    } finally {
+      setIsUploading(false);
     }
   };
 
   return {
     uploadedFiles,
     pickDocuments,
-    viewFile,
-    renameFile,
     openModal,
     closeModal,
     isModalVisible,
@@ -235,5 +264,6 @@ export const UploadScreenVM = () => {
     isSelectionMode,
     selectedIds,
     styles,
+    isUploading,
   };
-};
+};;

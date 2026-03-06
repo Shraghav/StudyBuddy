@@ -3,7 +3,7 @@ name: Backend CI Pipeline
 on:
   push:
     branches:
-      - initial_backend_setup
+      - main
 
 jobs:
   build-and-test:

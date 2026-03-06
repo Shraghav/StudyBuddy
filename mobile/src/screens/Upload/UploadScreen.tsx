@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, Image, Modal, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
@@ -25,7 +25,16 @@ export const UploadScreen = () => {
       {/* To display the selected files */}
       <View style={styles.content}>
         {!vm.isSelectionMode && (
-          <CustomButton title="Upload PDF Files" onPress={vm.pickDocuments} viewstyle={styles.uploadBtn} />
+          vm.isUploading ? (
+            <View style={[styles.uploadBtn, { padding: 15, backgroundColor: "#E0F2F1", borderRadius: 10, alignItems: "center" }]}>
+              <ActivityIndicator size="small" color="#00796B" />
+              <Text style={{ marginTop: 8, color: "#00796B", fontWeight: "bold" }}>
+                Analyzing & Embedding PDF...
+              </Text>
+            </View>
+          ) : (
+            <CustomButton title="Upload PDF Files" onPress={vm.pickDocuments} viewstyle={styles.uploadBtn} />
+          )
         )}
 
         <View style={styles.listContainer}>
@@ -49,16 +58,22 @@ export const UploadScreen = () => {
 
           <FlatList
             data={vm.uploadedFiles}
-            keyExtractor={(item, index) => item.uri + index}
-            renderItem={({ item }) => {
+            keyExtractor={(item, index) => {
+              const id = item.id ? String(item.id) : `temp-${index}`;
+              return id;
+            }}
+            renderItem={({ item, }) => {
               const isSelected = vm.selectedIds.includes(item.id);
               return (
                 <FileCard
                   name={item.name}
-                  onPress={() => vm.isSelectionMode ? vm.toggleSelection(item.id) : vm.viewFile(item.uri)}
-                  onLongPress={() => !vm.isSelectionMode && vm.openModal(item.id, item.name)}
+                  onPress={() => {
+                    vm.isSelectionMode && vm.toggleSelection(item.id)
+                    !vm.isSelectionMode && vm.openModal(item.id, item.name)
+                  }}
                   style={isSelected ? styles.selectedCard : styles.unselectedCard}
                 />
+
               );
             }}
             ListEmptyComponent={
@@ -68,6 +83,7 @@ export const UploadScreen = () => {
               </View>
             }
             contentContainerStyle={styles.flatListContent}
+
           />
         </View>
       </View>

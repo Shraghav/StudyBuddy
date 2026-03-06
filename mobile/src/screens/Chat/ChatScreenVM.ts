@@ -1,14 +1,14 @@
-import { useRef, useState } from "react";
-import { Alert, FlatList, StyleSheet } from "react-native";
-import FileViewer from "react-native-file-viewer";
+import { useEffect, useRef, useState } from "react";
+import { FlatList, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
+import { apiClient } from "../../services/api/api_client";
 import { RootState } from "../../store";
 import {
   addMessage,
-  addSession,
   attachDocumentToSession,
 } from "../../store/slices/ChatSlice";
+import { FileDetail } from "../../store/slices/FileSlice";
 
 export const ChatScreenVM = () => {
   const dispatch = useDispatch();
@@ -25,7 +25,13 @@ export const ChatScreenVM = () => {
   const currentSession = sessions.find((s) => s.id == currentSessionId);
   const availableDocs = useSelector((state: RootState) => state.files.files);
   const [inputText, setInputText] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [dots, setDots] = useState(".");
 
+  const attachedFile = useSelector((state: RootState) =>
+    state.files.files.find((f) => f.id === currentSession?.attachedDocId),
+  );
+  ("");
   const styles = StyleSheet.create({
     overallContainer: { flex: 1, backgroundColor: "#FFFFFF" },
     emptyContainer: {
@@ -172,87 +178,114 @@ export const ChatScreenVM = () => {
     },
   });
 
-  // Chat Scenarios
-  const selectDocForChat = (docName: string) => {
-    try {
-      if (currentSessionId) {
-        dispatch(
-          attachDocumentToSession({ sessionId: currentSessionId, docName }),
-        );
-        setIsDocModalVisible(false);
-      }
-    } catch (error) {
-      console.error("Error occured in selectDocForChat:", error);
+  useEffect(() => {
+    let interval: any;
+    if (isChatLoading) {
+      interval = setInterval(
+        () => setDots((p) => (p.length < 3 ? p + "." : ".")),
+        400,
+      );
     }
-  };
-  const createNewChat = () => {
+    return () => clearInterval(interval);
+  }, [isChatLoading]);
+
+  // Chat Scenarios
+  const selectDocForChat = async (doc: FileDetail) => {
     try {
+      if (!currentSessionId) {
+        console.error("No session available to attach");
+        return;
+      }
+      await apiClient.patch(`/chat/${currentSessionId}/attach/${doc.id}`);
       dispatch(
-        addSession({
-          id: Date.now().toString(),
-          title: `Study Session ${sessions.length + 1}`,
-          messages: [],
+        attachDocumentToSession({
+          sessionId: currentSessionId,
+          docName: doc.name,
+          docId: doc.id,
         }),
       );
+      setIsDocModalVisible(false);
     } catch (error) {
-      console.error("Error occured in createNewChat:", error);
+      console.error("Attachment failed:", error);
     }
   };
-  const sendMessage = () => {
+
+  // Sending AI response and handling the user and ai messages
+  const sendMessage = async () => {
     try {
       if (!inputText.trim() || !currentSessionId) return;
+      const userText = inputText.trim();
+
+      // Displaying user message
       dispatch(
         addMessage({
           sessionId: currentSessionId,
           message: {
-            id: Math.random().toString(),
-            text: inputText.trim(),
+            id: Date.now().toString(),
+            text: userText,
             sender: "user",
             timestamp: new Date().toISOString(),
           },
         }),
       );
-
       setInputText("");
-      setTimeout(() => {
+
+      // Ensuring a document is attached
+      const attachedDoc = availableDocs.find(
+        (d) => d.name === currentSession?.attachedDocName,
+      );
+      if (!attachedDoc || !attachedDoc.id) {
         dispatch(
           addMessage({
             sessionId: currentSessionId,
             message: {
-              id: Math.random().toString(),
-              text: "That's an interesting point! Based on standard principles, here is how I would explain it. What else would you like to know?",
+              id: Date.now().toString(),
+              text: "Please attach a PDF document from the menu to ask questions about it.",
               sender: "ai",
               timestamp: new Date().toISOString(),
             },
           }),
         );
-      }, 1200);
-    } catch (error) {
-      console.error("Error occured in sendMessage:", error);
-    }
-  };
-
-  // Viewing attached file
-  const viewAttachedFile = async () => {
-    try {
-      const fileToView = availableDocs.find(
-        (f) => f.name === currentSession?.attachedDocName,
-      );
-
-      if (fileToView && fileToView.uri) {
-        try {
-          await FileViewer.open(fileToView.uri, {
-            showOpenWithDialog: true,
-          });
-        } catch (error) {
-          Alert.alert(
-            "Error",
-            "Could not open this file. Make sure you have a PDF viewer installed.",
-          );
-        }
+        return;
       }
+
+      // Calling FastAPI backend
+      setIsChatLoading(true);
+      const response = await apiClient.post(
+        `/chat/${currentSessionId}/${attachedDoc.id}`,
+        {
+          question: userText,
+        },
+      );
+      const aiText = response.data.content.answer;
+
+      // Displaying AI Response
+      dispatch(
+        addMessage({
+          sessionId: currentSessionId,
+          message: {
+            id: Date.now().toString(),
+            text: aiText,
+            sender: "ai",
+            timestamp: new Date().toISOString(),
+          },
+        }),
+      );
     } catch (error) {
-      console.error("Error occured in view attached file:", error);
+      console.error("Error sending message to backend:", error);
+      dispatch(
+        addMessage({
+          sessionId: currentSessionId!,
+          message: {
+            id: Date.now().toString(),
+            text: "StudyBuddy encountered an error retrieving the answer. Please try again.",
+            sender: "ai",
+            timestamp: new Date().toISOString(),
+          },
+        }),
+      );
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -267,19 +300,19 @@ export const ChatScreenVM = () => {
 
   const openDocModal = () => {
     try {
-      setIsDocModalVisible(true)
+      setIsDocModalVisible(true);
     } catch (error) {
-      console.error("Error occured in openDocModal:", error)
+      console.error("Error occured in openDocModal:", error);
     }
-  }
-
+  };
   const closeDocModal = () => {
     try {
-      setIsDocModalVisible(false)
+      setIsDocModalVisible(false);
     } catch (error) {
-      console.error("Error occured in closeModal:", error)
+      console.error("Error occured in closeModal:", error);
     }
-  }
+  };
+
   return {
     inputText,
     changeInputText,
@@ -287,15 +320,15 @@ export const ChatScreenVM = () => {
     currentSession,
     currentSessionId,
     availableDocs,
-    createNewChat,
     sendMessage,
-    attachDocumentToSession,
     openDocModal,
     closeDocModal,
     selectDocForChat,
-    viewAttachedFile,
     isDocModalVisible,
     styles,
     flatListRef,
+    isChatLoading,
+    dots,
+    attachedFile,
   };
 };

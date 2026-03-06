@@ -1,14 +1,16 @@
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { DrawerActions } from "@react-navigation/native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
+import { apiClient } from "../../services/api/api_client";
 import { RootState } from "../../store";
 import {
   addSession,
   removeSessions,
   renameSession,
+  setSessions,
   switchSession,
 } from "../../store/slices/ChatSlice";
 
@@ -51,12 +53,14 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       marginHorizontal: 10,
       borderRadius: 10,
       marginBottom: 5,
+      borderColor: "transparent",
+      borderWidth:2
     },
     historyItemActive: { backgroundColor: "#E0F2F1" },
     selectedItem: {
       borderWidth: 2,
-      borderColor: "#00796B",
-      backgroundColor: "#E0F2F1",
+      borderColor: "#D32F2F",
+      backgroundColor: "#ffd4db",
     },
     historyText: { fontSize: 16, color: "#263238" },
     historyTextActive: { fontWeight: "bold", color: "#004D40" },
@@ -80,7 +84,22 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
     chatDrawer: { width: "60%" },
   });
 
-  // Modal functionalities 
+  // To fetch all the chats
+  useEffect(() => {
+    fetchChatHistory();
+  }, []);
+
+  const fetchChatHistory = async () => {
+    try {
+      const response = await apiClient.get("/chat/sessions/all");
+      if (response.data.status === "success") {
+        dispatch(setSessions(response.data.sessions));
+      }
+    } catch (error) {
+      console.error("Failed to load chat history:", error);
+    }
+  };
+  // Modal functionalities
   const openModal = (id: string, currentTitle: string) => {
     try {
       setTargetSessionId(id);
@@ -97,12 +116,14 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       console.error("Error in Close Modal:", error);
     }
   };
-  const confirmRename = () => {
+  const confirmRename = async () => {
     try {
       if (targetSessionId && docName.trim()) {
-        dispatch(
-          renameSession({ id: targetSessionId, newTitle: docName.trim() }),
-        );
+        const newTitle = docName.trim();
+        await apiClient.patch(`/chat/sessions/${targetSessionId}/rename`, {
+          title: newTitle,
+        });
+        dispatch(renameSession({ id: targetSessionId, newTitle: newTitle }));
         setIsModalVisible(false);
       }
     } catch (error) {
@@ -116,8 +137,8 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       console.error("Error in handleDocName:", error);
     }
   };
-  
-  // Selecting and togling chats in drawer
+
+  // Selecting, toggling, deleting and cancelling chats in drawer
   const enterSelectionMode = () => {
     try {
       if (targetSessionId) {
@@ -142,34 +163,44 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       console.error("Errod occured in toggleSelection:", error);
     }
   };
-  const deleteSelectedChats = () => {
+  const deleteSelectedChats = async () => {
     try {
+      if (selectedIds.length === 0) return;
+      const payload = { session_ids: selectedIds };
+
+      await apiClient.post("/chat/sessions/bulk-delete", payload);
+      
       dispatch(removeSessions(selectedIds));
       setIsSelectionMode(false);
       setSelectedIds([]);
     } catch (error) {
-      console.error("Errod occured in deleteSelectionChats:", error);
+      console.error("Error occured in deleteSelectionChats:", error);
     }
   };
   const cancelSelection = () => {
     try {
       setIsSelectionMode(false);
+      setSelectedIds([]);
     } catch (error) {
       console.error("Error in createNewChat:", error);
     }
   };
 
-  const createNewChat = () => {
+  // Creating newchat, closeing drawer and chat session change
+  const createNewChat = async () => {
     try {
+      const title = `Study Session ${sessions.length + 1}`;
+      const response = await apiClient.post("/chat/sessions", { title });
+      const newSession = response.data.session;
       dispatch(
         addSession({
-          id: Date.now().toString(),
-          title: `Study Session ${sessions.length + 1}`,
+          ...newSession,
           messages: [],
         }),
       );
+      return newSession.id;
     } catch (error) {
-      console.error("Error occured in createNewChat:", error);
+      console.error("Error occured in chat drawer:", error);
     }
   };
   const createNewChatAndCloseDrawer = () => {
@@ -182,6 +213,7 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   };
   const changeSession = (id: string) => {
     try {
+      props.navigation.closeDrawer();
       return dispatch(switchSession(id));
     } catch (error) {
       console.error(error);
