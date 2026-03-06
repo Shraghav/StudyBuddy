@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: buddy_user
+      POSTGRES_PASSWORD: buddy_password
+      POSTGRES_DB: studybuddy_db
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: ./backend # 🟢 Tells Docker to look inside the backend folder
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
