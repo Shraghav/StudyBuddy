@@ -12,7 +12,7 @@ password = urllib.parse.quote_plus(os.getenv("DB_PASSWORD"))
 user = os.getenv("DB_USER")
 db = os.getenv("DB_NAME")
 
-DATABASE_URL = f"postgresql+asyncpg://{user}:{password}@localhost:5432/{db}"
+DATABASE_URL = f"postgresql+asyncpg://{user}:{password}@db:5432/{db}"
 
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False )
