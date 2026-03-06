@@ -1,4 +1,7 @@
-fastapi
-uvicorn
 pytest
 httpx
+fastapi
+uvicorn
+sqlalchemy[asyncio]
+asyncpg
+pgvector
