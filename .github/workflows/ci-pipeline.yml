@@ -28,8 +28,13 @@ jobs:
       - name: Wait for API and Database Setup
         run: |
           echo "Waiting for FastAPI to be ready..."
-          # Retries every 2 seconds for up to 60 seconds
-          timeout 60s bash -c 'until curl -s http://localhost:8000/ > /dev/null; do echo "Still waiting..."; sleep 2; done'
+          # 🟢 This loop now prints logs on failure so you can see the error in real-time
+          timeout 90s bash -c 'until curl -s http://localhost:8000/ > /dev/null; do 
+            echo "Still waiting... Backend status:"
+            docker compose ps
+            docker compose logs --tail=10 api
+            sleep 5
+          done'
           echo "FastAPI is up!"
 
       # Tests the API
