@@ -2,19 +2,32 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15-alpine
+    image: ankane/pgvector:v0.5.0
     environment:
-      POSTGRES_USER: buddy_user
-      POSTGRES_PASSWORD: buddy_password
-      POSTGRES_DB: studybuddy_db
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     ports:
       - "5432:5432"
+    # 🟢 THE FIX: Add a health check for the database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
-      context: ./backend # 🟢 Tells Docker to look inside the backend folder
+      context: ./backend
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    environment:
+      # 🟢 Ensure your app knows where the DB is inside the Docker network
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MODAL_NAME=${MODAL_NAME}
     depends_on:
-      - db
+      db:
+        condition: service_healthy # 🟢 Only starts API after DB is ready
