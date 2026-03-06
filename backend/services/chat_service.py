@@ -1,8 +1,6 @@
 from typing import List
 from uuid import UUID
 import os
-from dotenv import load_dotenv
-load_dotenv()
 from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_groq import ChatGroq

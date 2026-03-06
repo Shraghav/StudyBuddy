@@ -8,21 +8,19 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
+    env:
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      MODAL_NAME: ${{secrets.MODAL_NAME}}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Start services with Docker Compose
         run: docker compose up -d --build
-        env:
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          # Also include your AI keys here
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          MODAL_NAME: ${{secrets.MODAL_NAME}}
 
       # 🟢 THE FIX: Wait for the API to be fully initialized
       - name: Wait for API and Database Setup
