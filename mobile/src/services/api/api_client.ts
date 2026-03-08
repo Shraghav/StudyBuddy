@@ -1,23 +1,14 @@
 import axios from "axios";
-import { Platform } from "react-native";
-
-const getBaseUrl = () => {
-  if (__DEV__) {
-    // FOR PHYSICAL DEVICE (Both Android & iOS)
-    const pcIpAddress = "192.168.31.74";
-    return `http://${pcIpAddress}:8000`;
-  }
-};
 
 export const apiClient = axios.create({
-  baseURL: getBaseUrl(),
+  baseURL: "https://studybuddy-backend-qq6l.onrender.com/",
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 60000
+  timeout: 30000,
 });
 
-// Saample code to inject the bearer token
+// Sample code to inject the bearer token
 apiClient.interceptors.request.use(async (config) => {
   const token = "your_auth_token_here";
   if (token) {

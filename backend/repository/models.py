@@ -27,7 +27,7 @@ class Document(Base):
     name = Column(String, nullable=False)
     size = Column(Integer)
     upload_date = Column(DateTime, default=lambda: datetime.utcnow())
-    file_content = Column(LargeBinary, nullable=False)
+    file_url = Column(String, nullable=False)
     owner = relationship("User", back_populates="documents")
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="document", cascade="all, delete")

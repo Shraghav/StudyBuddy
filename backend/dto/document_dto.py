@@ -14,3 +14,8 @@ class DocumentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class DocumentCreate(BaseModel):
+    name: str
+    file_url: str
+    size: int
