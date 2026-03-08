@@ -1,19 +1,20 @@
+import { decode } from "base64-arraybuffer";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
 import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import "react-native-get-random-values";
 import { useDispatch, useSelector } from "react-redux";
-
 import { apiClient } from "../../services/api/api_client";
 import { RootState } from "../../store";
+import { removeFiles } from "../../store/slices/ChatSlice";
 import {
   addFiles,
   removeFile,
   setFiles,
   updateFileName,
 } from "../../store/slices/FileSlice";
-import { removeFiles } from "../../store/slices/ChatSlice";
-
+import { supabase } from "../../services/db/superbase";
 export const UploadScreenVM = () => {
   // hooks
   const dispatch = useDispatch();
@@ -25,6 +26,7 @@ export const UploadScreenVM = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
+ 
   // Fetch existing files from Postgres on load
   useEffect(() => {
     const fetchFiles = async () => {
@@ -182,10 +184,10 @@ export const UploadScreenVM = () => {
   // deleting selected files and exiting selection
   const deleteSelectedFiles = async () => {
     try {
+      await apiClient.delete("/documents/batch", { data: selectedIds });
       dispatch(removeFiles(selectedIds));
       selectedIds.forEach((id) => dispatch(removeFile(id)));
-      await apiClient.delete("/documents/batch", { data: selectedIds });
-      
+
       exitSelection();
     } catch (error) {
       console.error("Error in deleteSelectedFiles:", error);
@@ -212,27 +214,38 @@ export const UploadScreenVM = () => {
       if (!result.canceled) {
         setIsUploading(true);
         for (const asset of result.assets) {
-          // Append the data
-          const formData = new FormData();
-          const cleanName = decodeURIComponent(
-            asset.name || `upload_${Date.now()}.pdf`,
-          );
-          formData.append("file", {
-            uri: asset.uri,
-            name: cleanName,
-            type: "application/pdf",
-          } as any);
+          // 1. Prepare File for Supabase (React Native needs an ArrayBuffer)
+          const file = new FileSystem.File(asset.uri);
 
-          // Callling backend to store the data
-          const response = await apiClient.post(
-            `/documents/upload`,
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            },
-          );
+          // 2. Read the base64 content
+          const base64 = await file.base64();
+
+          const fileName = `${Date.now()}_${asset.name}`;
+          const filePath = `uploads/${fileName}`;
+          const { data: uploadData, error: uploadError } =
+            await supabase.storage
+              .from("study-buddy-docs")
+              .upload(filePath, decode(base64), {
+                contentType: "application/pdf",
+              });
+          if (uploadError) throw uploadError;
+
+          // 3. Get the Public URL from Supabase
+          const { data: urlData } = supabase.storage
+            .from("study-buddy-docs")
+            .getPublicUrl(filePath);
+
+          const publicUrl = urlData.publicUrl;
+
+          console.log("Url:",publicUrl)
+          console.log("Name:",asset.name)
+          console.log("Size:",asset.size)
+          // 4. Calling backend with JSON (No more formData!)
+          const response = await apiClient.post(`/documents/upload`, {
+            name: asset.name,
+            file_url: publicUrl, 
+            size: asset.size!,
+          });
           const localFileWithServerId = {
             ...response.data,
             uri: asset.uri,
@@ -266,4 +279,4 @@ export const UploadScreenVM = () => {
     styles,
     isUploading,
   };
-};;
+};

@@ -1,12 +1,11 @@
 # Web Server & Framework
 fastapi
 uvicorn
-
+supabase
 # Database & ORM
 sqlalchemy[asyncio]
 asyncpg
 pgvector
-
 # AI & LangChain
 langchain
 langchain-community

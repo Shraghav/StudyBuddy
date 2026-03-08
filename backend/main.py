@@ -1,10 +1,14 @@
+from contextlib import asynccontextmanager
+
+import uvicorn
+from controller.chat_controller import router as chat_controller
+from controller.document_controller import router as document_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 from repository.database import create_db
-from controller.document_controller import router as document_router
-from controller.chat_controller import router as chat_controller
-from contextlib import asynccontextmanager
+from repository.models import (ChatMessage, ChatSession, Document,
+                               DocumentChunk, User)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

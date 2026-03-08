@@ -1,7 +1,11 @@
 import hashlib
 import os
+from urllib.parse import unquote
 from uuid import UUID
 
+import httpx
+from utils.utils import supabase
+from dto.document_dto import DocumentCreate
 from fastapi import UploadFile
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -16,7 +20,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class DocumentService:
     @staticmethod
-    async def upload_file(db: AsyncSession, file: UploadFile):
+    async def upload_file(db: AsyncSession, file: DocumentCreate):
         """
         Handles the end-to-end workflow for uploading a new PDF document.
 
@@ -38,18 +42,20 @@ class DocumentService:
             Exception: If file writing, database persistence, or embedding generation fails.
         """
         try:
-            file_location = f"{UPLOAD_DIR}/{file.filename}"
-            content = await file.read() 
+            temp_file_location = f"{UPLOAD_DIR}/{file.name}"
             
-            with open(file_location, "wb") as f:
-                f.write(content)
-                
-            file_size = len(content)
             new_doc = await DocumentRepository.create_document(
-                db=db, name=file.filename, size=file_size, file_content=content
+                db=db, name=file.name, size=file.size, file_url=file.file_url
             )
 
-            loader = PyPDFLoader(file_location)
+            async with httpx.AsyncClient() as client:
+                response = await client.get(file.file_url)
+                response.raise_for_status()
+                
+                with open(temp_file_location, "wb") as f:
+                    f.write(response.content)
+
+            loader = PyPDFLoader(temp_file_location)
             docs = loader.load()
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
             splits = text_splitter.split_documents(docs)
@@ -80,7 +86,10 @@ class DocumentService:
         except Exception as e:
             print(f"Error in service upload_file: {e}")
             raise e
-            
+        finally:
+            if os.path.exists(temp_file_location):
+                os.remove(temp_file_location)
+    
     @staticmethod
     async def fetch_documents(db: AsyncSession):
         """
@@ -143,7 +152,32 @@ class DocumentService:
             Exception: If the batch deletion fails.
         """
         try: 
-            return await DocumentRepository.delete_documents(db, doc_ids)
+                # 1. Delete from DB and get the URLs of the files to remove
+            file_urls = await DocumentRepository.delete_documents(db, doc_ids)
+            print("Path:", file_urls)
+
+            if not file_urls:
+                return True
+
+            # 2. Extract paths from URLs
+            # Example: '.../storage/v1/object/public/study-buddy-docs/uploads/myfile.pdf' 
+            # becomes 'uploads/myfile.pdf'
+            file_paths = []
+            for url in file_urls:
+                # Split to get everything after the bucket name
+                encoded_path = url.split("study-buddy-docs/")[-1]
+                # Convert %20 back to spaces, etc.
+                decoded_path = unquote(encoded_path)
+                file_paths.append(decoded_path)
+
+                # 3. Call Supabase remove with the clean paths
+                result = supabase.storage.from_("study-buddy-docs").remove(file_paths)
+                # Log the result to verify
+                print(f"Supabase delete result: {result}")
+
+                response = supabase.storage.from_("study-buddy-docs").remove(file_paths)
+                
+                return True
         except Exception as e:
             print(f"Error in service delete_files: {e}")
             raise e

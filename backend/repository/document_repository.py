@@ -1,15 +1,16 @@
 from typing import List
+from uuid import UUID
 
+from repository.models import Document, DocumentChunk
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete
-from uuid import UUID
-from repository.models import Document, DocumentChunk 
+
 
 class DocumentRepository:
     
     @staticmethod
-    async def create_document(db: AsyncSession, name: str, size: int, file_content:bytes) -> Document:
+    async def create_document(db: AsyncSession, name: str, size: int, file_url: str) -> Document:
         """
         Creates and persists a new Document record with binary content.
 
@@ -26,7 +27,7 @@ class DocumentRepository:
             Exception: If the insertion fails, triggering a session rollback.
         """
         try:
-            new_doc = Document(name=name,size=size, file_content=file_content)
+            new_doc = Document(name=name,size=size, file_url=file_url)
             db.add(new_doc)
             await db.commit()
             await db.refresh(new_doc)
@@ -106,9 +107,17 @@ class DocumentRepository:
             Exception: If the batch delete fails, triggering a session rollback.
         """
         try:
+            # 1. Fetch the URLs before deleting the records
+            result = await db.execute(
+                select(Document.file_url).where(Document.id.in_(doc_ids))
+            )
+            file_urls = result.scalars().all()
+    
+            # 2. Perform the deletion
             await db.execute(delete(Document).where(Document.id.in_(doc_ids)))
             await db.commit()
-            return True
+            
+            return list(file_urls)
         except Exception as e:
             await db.rollback()
             print(f"Error in repo delete_documents: {e}")

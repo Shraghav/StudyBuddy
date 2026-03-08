@@ -3,8 +3,9 @@ from typing import List
 from uuid import UUID
 
 from dotenv import load_dotenv
-from dto.document_dto import DocumentRenameRequest, DocumentResponse
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from dto.document_dto import (DocumentCreate, DocumentRenameRequest,
+                              DocumentResponse)
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
 from repository.database import get_async_session
 from services.document_service import DocumentService
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 os.environ["GOOGLE_API_KEY"] = os.getenv('EMBEDDING_KEY')
 
 @router.post("/upload", response_model=DocumentResponse)
-async def upload_document(file: UploadFile = File(...), 
+async def upload_document(file: DocumentCreate = Body(...), 
     db: AsyncSession = Depends(get_async_session)):
     """
     Uploads a PDF document, stores its binary content, and generates vector embeddings.
@@ -30,7 +31,8 @@ async def upload_document(file: UploadFile = File(...),
         HTTPException: 400 if the file is not a PDF, 500 for internal server errors.
     """
     try:
-        if not file.filename.endswith(".pdf"):
+        print("Hello")
+        if not file.name.endswith(".pdf"):
             raise HTTPException(status_code=400, detail="Only PDF files are allowed")
         return await DocumentService.upload_file(db, file)
     except Exception as e:

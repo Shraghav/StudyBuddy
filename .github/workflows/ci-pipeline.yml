@@ -9,9 +9,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     env:
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_NAME: ${{ secrets.DB_NAME }}
+      DATABASE_URL : ${{secrets.DATABASE_URL}}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       EMBEDDING_KEY: ${{ secrets.EMBEDDING_KEY }}
       MODAL_NAME: ${{secrets.MODAL_NAME}}
