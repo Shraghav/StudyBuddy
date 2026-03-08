@@ -13,6 +13,8 @@ jobs:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       EMBEDDING_KEY: ${{ secrets.EMBEDDING_KEY }}
       MODAL_NAME: ${{secrets.MODAL_NAME}}
+      SUPABASE_URL: ${{secrets.SUPABASE_URL}}
+      SUPABASE_KEY: ${{secrets.SUPABASE_KEY}}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
