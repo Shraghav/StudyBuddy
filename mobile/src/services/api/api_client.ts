@@ -1,20 +1,13 @@
 import axios from "axios";
 
+
 export const apiClient = axios.create({
   baseURL: "https://studybuddy-backend-qq6l.onrender.com/",
+  // baseURL: "http://192.168.31.74:8000",
   headers: {
     "Content-Type": "application/json",
   },
   timeout: 30000,
-});
-
-// Sample code to inject the bearer token
-apiClient.interceptors.request.use(async (config) => {
-  const token = "your_auth_token_here";
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
 });
 
 apiClient.interceptors.response.use(
