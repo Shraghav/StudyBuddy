@@ -31,7 +31,6 @@ async def upload_document(file: DocumentCreate = Body(...),
         HTTPException: 400 if the file is not a PDF, 500 for internal server errors.
     """
     try:
-        print("Hello")
         if not file.name.endswith(".pdf"):
             raise HTTPException(status_code=400, detail="Only PDF files are allowed")
         return await DocumentService.upload_file(db, file)

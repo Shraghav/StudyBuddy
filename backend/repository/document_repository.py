@@ -195,7 +195,6 @@ class DocumentRepository:
             Exception: If the bulk insertion fails, triggering a session rollback.
         """
         try:
-            print(f"In doc repo: saving {len(chunks)} chunks")
             db.add_all(chunks) 
             await db.commit()
         except Exception as e:

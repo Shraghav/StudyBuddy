@@ -2,6 +2,7 @@ import hashlib
 import os
 from urllib.parse import unquote
 from uuid import UUID
+import uuid
 
 import httpx
 from utils.utils import supabase
@@ -42,8 +43,8 @@ class DocumentService:
             Exception: If file writing, database persistence, or embedding generation fails.
         """
         try:
-            temp_file_location = f"{UPLOAD_DIR}/{file.name}"
-            
+            unique_filename = f"{uuid.uuid4()}_{file.name}"
+            temp_file_location = f"{UPLOAD_DIR}/{unique_filename}"
             new_doc = await DocumentRepository.create_document(
                 db=db, name=file.name, size=file.size, file_url=file.file_url
             )
@@ -85,6 +86,9 @@ class DocumentService:
             return new_doc
         except Exception as e:
             print(f"Error in service upload_file: {e}")
+            if new_doc and new_doc.id:
+                await db.delete(new_doc)
+                await db.commit()
             raise e
         finally:
             if os.path.exists(temp_file_location):
@@ -152,16 +156,14 @@ class DocumentService:
             Exception: If the batch deletion fails.
         """
         try: 
-                # 1. Delete from DB and get the URLs of the files to remove
+            # Delete from DB and get the URLs of the files to remove
             file_urls = await DocumentRepository.delete_documents(db, doc_ids)
-            print("Path:", file_urls)
 
             if not file_urls:
                 return True
 
             # 2. Extract paths from URLs
-            # Example: '.../storage/v1/object/public/study-buddy-docs/uploads/myfile.pdf' 
-            # becomes 'uploads/myfile.pdf'
+            # Example: '.../storage/v1/object/public/study-buddy-docs/uploads/myfile.pdf' becomes 'uploads/myfile.pdf'
             file_paths = []
             for url in file_urls:
                 # Split to get everything after the bucket name
@@ -170,12 +172,12 @@ class DocumentService:
                 decoded_path = unquote(encoded_path)
                 file_paths.append(decoded_path)
 
-                # 3. Call Supabase remove with the clean paths
+                # Call Supabase remove with the clean paths
                 result = supabase.storage.from_("study-buddy-docs").remove(file_paths)
                 # Log the result to verify
                 print(f"Supabase delete result: {result}")
 
-                response = supabase.storage.from_("study-buddy-docs").remove(file_paths)
+                supabase.storage.from_("study-buddy-docs").remove(file_paths)
                 
                 return True
         except Exception as e:

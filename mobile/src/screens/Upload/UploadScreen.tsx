@@ -33,7 +33,7 @@ export const UploadScreen = () => {
               </Text>
             </View>
           ) : (
-            <CustomButton title="Upload PDF Files" onPress={vm.pickDocuments} viewstyle={styles.uploadBtn} />
+            <CustomButton title={vm.isCooldown ? "Don't upload too fast" : "Upload PDF"} onPress={vm.pickDocuments} viewstyle={styles.uploadBtn} disabled={vm.isCooldown} textStyle={styles.uploadBtnTxt} />
           )
         )}
 
@@ -54,37 +54,49 @@ export const UploadScreen = () => {
                 </TouchableOpacity>
               </View>
             )}
+            {vm.isDeleteLoading && (
+              <View style={{ position: "absolute", right: 65 }}>
+
+                <ActivityIndicator animating={true} size="small" color="#00796B" />
+              </View>
+            )}
           </View>
 
-          <FlatList
-            data={vm.uploadedFiles}
-            keyExtractor={(item, index) => {
-              const id = item.id ? String(item.id) : `temp-${index}`;
-              return id;
-            }}
-            renderItem={({ item, }) => {
-              const isSelected = vm.selectedIds.includes(item.id);
-              return (
-                <FileCard
-                  name={item.name}
-                  onPress={() => {
-                    vm.isSelectionMode && vm.toggleSelection(item.id)
-                    !vm.isSelectionMode && vm.openModal(item.id, item.name)
-                  }}
-                  style={isSelected ? styles.selectedCard : styles.unselectedCard}
-                />
-
-              );
-            }}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No files uploaded yet.</Text>
-                <Text style={styles.emptySubText}>Select multiple PDFs to see them here.</Text>
-              </View>
-            }
-            contentContainerStyle={styles.flatListContent}
-
-          />
+          {vm.isLoadingInitial ? (
+            // Show this ONLY in the list area while fetching data
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+              <ActivityIndicator animating={true} size="large" color="#00796B" />
+            </View>
+          ) : (
+            // Show the FlatList once loading is complete (even if empty)
+            <FlatList
+              data={vm.uploadedFiles}
+              keyExtractor={(item, index) => {
+                const id = item.id ? String(item.id) : `temp-${index}`;
+                return id;
+              }}
+              renderItem={({ item }) => {
+                const isSelected = vm.selectedIds.includes(item.id);
+                return (
+                  <FileCard
+                    name={item.name}
+                    onPress={() => {
+                      vm.isSelectionMode && vm.toggleSelection(item.id);
+                      !vm.isSelectionMode && vm.openModal(item.id, item.name);
+                    }}
+                    style={isSelected ? styles.selectedCard : styles.unselectedCard}
+                  />
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No files uploaded yet.</Text>
+                  <Text style={styles.emptySubText}>Select multiple PDFs to see them here.</Text>
+                </View>
+              }
+              contentContainerStyle={styles.flatListContent}
+            />
+          )}
         </View>
       </View>
 

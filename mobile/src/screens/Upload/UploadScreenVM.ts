@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import "react-native-get-random-values";
 import { useDispatch, useSelector } from "react-redux";
+
 import { apiClient } from "../../services/api/api_client";
+import { supabase } from "../../services/db/superbase";
 import { RootState } from "../../store";
 import { removeFiles } from "../../store/slices/ChatSlice";
 import {
@@ -14,7 +16,7 @@ import {
   setFiles,
   updateFileName,
 } from "../../store/slices/FileSlice";
-import { supabase } from "../../services/db/superbase";
+
 export const UploadScreenVM = () => {
   // hooks
   const dispatch = useDispatch();
@@ -25,8 +27,11 @@ export const UploadScreenVM = () => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+  const [isCooldown, setIsCooldown] = useState(false);
+  const COOLDOWN_TIME_MS = 10000;
 
- 
   // Fetch existing files from Postgres on load
   useEffect(() => {
     const fetchFiles = async () => {
@@ -35,6 +40,8 @@ export const UploadScreenVM = () => {
         dispatch(setFiles(response.data));
       } catch (error) {
         console.error("Error fetching files from API:", error);
+      } finally {
+        setIsLoadingInitial(false);
       }
     };
     fetchFiles();
@@ -46,7 +53,7 @@ export const UploadScreenVM = () => {
     title: { fontSize: 24, fontWeight: "bold", color: "#01212b" },
     subtitle: { fontSize: 14, color: "#546E7A", marginTop: 5 },
     content: { flex: 1, paddingHorizontal: 20 },
-    uploadBtn: { marginVertical: 20 },
+    uploadBtn: { marginVertical: 20, opacity: isCooldown ? 0.5 : 1 },
     listContainer: { flex: 1 },
     listHeader: { fontSize: 18, fontWeight: "700", color: "#263238" },
     emptyState: { alignItems: "center", marginTop: 50 },
@@ -98,6 +105,7 @@ export const UploadScreenVM = () => {
     },
     selectBtn: { backgroundColor: "#263238", marginBottom: 20 },
     iconDimensions: { height: 20, width: 20 },
+    uploadBtnTxt: { color: isCooldown ? "#262f33" :"white"},
   });
 
   // Model function to open, close modal
@@ -184,13 +192,15 @@ export const UploadScreenVM = () => {
   // deleting selected files and exiting selection
   const deleteSelectedFiles = async () => {
     try {
+      setIsDeleteLoading(true);
       await apiClient.delete("/documents/batch", { data: selectedIds });
       dispatch(removeFiles(selectedIds));
       selectedIds.forEach((id) => dispatch(removeFile(id)));
-
       exitSelection();
     } catch (error) {
       console.error("Error in deleteSelectedFiles:", error);
+    } finally {
+      setIsDeleteLoading(false);
     }
   };
   const exitSelection = () => {
@@ -206,6 +216,7 @@ export const UploadScreenVM = () => {
   const pickDocuments = async () => {
     try {
       // Document picker
+      if (isUploading || isCooldown) return;
       const result = await DocumentPicker.getDocumentAsync({
         type: "application/pdf",
         multiple: true,
@@ -236,14 +247,10 @@ export const UploadScreenVM = () => {
             .getPublicUrl(filePath);
 
           const publicUrl = urlData.publicUrl;
-
-          console.log("Url:",publicUrl)
-          console.log("Name:",asset.name)
-          console.log("Size:",asset.size)
           // 4. Calling backend with JSON (No more formData!)
           const response = await apiClient.post(`/documents/upload`, {
             name: asset.name,
-            file_url: publicUrl, 
+            file_url: publicUrl,
             size: asset.size!,
           });
           const localFileWithServerId = {
@@ -258,6 +265,10 @@ export const UploadScreenVM = () => {
       console.error("Error picking/uploading document:", err);
     } finally {
       setIsUploading(false);
+      setIsCooldown(true);
+      setTimeout(() => {
+        setIsCooldown(false);
+      }, COOLDOWN_TIME_MS);
     }
   };
 
@@ -278,5 +289,8 @@ export const UploadScreenVM = () => {
     selectedIds,
     styles,
     isUploading,
+    isLoadingInitial,
+    isDeleteLoading,
+    isCooldown,
   };
 };
