@@ -13,11 +13,6 @@ export function Root_Stack() {
     return (
         <NavigationContainer>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
-                {/* {isAuthenticated ? (
-                    <Stack.Screen name="MainApp" component={BottomTabs} />
-                ) : (
-                    <Stack.Screen name="Auth" component={AuthStack} />
-                )} */}
                 <Stack.Screen name='MainApp' component={BottomTabs} />
             </Stack.Navigator>
         </NavigationContainer>

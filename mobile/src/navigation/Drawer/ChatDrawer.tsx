@@ -1,6 +1,6 @@
 import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView } from '@react-navigation/drawer';
-import React from 'react';
-import { Image, Modal, Text, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { ActivityIndicator, Image, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
@@ -16,28 +16,48 @@ interface CustomDrawerProps extends DrawerContentComponentProps {
     vm: ChatDrawerType;
     styles: ChatDrawerType['styles'];
 }
+interface SessionItemProps {
+    session: ChatSession;
+    isActive: boolean;
+    isSelected: boolean;
+    isSelectionMode: boolean;
+    styles: any;
+    onPress: (id: string, isSelectionMode: boolean) => void;
+    onLongPress: (id: string, title: string, isSelectionMode: boolean) => void;
+}
+
+const SessionItem = memo(({ session, isActive, isSelected, isSelectionMode, styles, onPress, onLongPress }: SessionItemProps) => {
+    return (
+        <TouchableOpacity
+            style={[styles.historyItem, isActive && styles.historyItemActive, isSelected && styles.selectedItem]}
+            onPress={() => onPress(session.id, isSelectionMode)}
+            onLongPress={() => onLongPress(session.id, session.title, isSelectionMode)}
+        >
+            <Text style={[styles.historyText, isActive && styles.historyTextActive]} numberOfLines={1}>
+                🕛 {session.title}
+            </Text>
+        </TouchableOpacity>
+    );
+});
 const CustomDrawerContent = (props: CustomDrawerProps) => {
-    // Drawer Items
-    const SessionItem = ({ session, isActive, isSelected }: { session: ChatSession, isActive: boolean, isSelected: boolean }) => {
-        return (
-            <TouchableOpacity
-                key={session.id}
-                style={[styles.historyItem, isActive && styles.historyItemActive, isSelected && styles.selectedItem]}
-                onPress={() => {
-                    if (vm.isSelectionMode) vm.toggleSelection(session.id);
-                    else vm.changeSession(session.id);
-                }}
-                onLongPress={() => !vm.isSelectionMode && vm.openModal(session.id, session.title)}
-            >
-                <Text style={[styles.historyText, isActive && styles.historyTextActive]} numberOfLines={1}>
-                    🕛 {session.title}
-                </Text>
-            </TouchableOpacity>
-        )
-    }
     const vm = props.vm
     const styles = vm.styles
     const insets = useSafeAreaInsets();
+
+    // Handlers for the SessionItem to avoid passing inline functions down
+    const handleSessionPress = useCallback((id: string, isSelectionMode: boolean) => {
+        if (isSelectionMode) {
+            vm.toggleSelection(id);
+        } else {
+            vm.changeSession(id);
+        }
+    }, [vm.toggleSelection, vm.changeSession]);
+
+    const handleSessionLongPress = useCallback((id: string, title: string, isSelectionMode: boolean) => {
+        if (!isSelectionMode) {
+            vm.openModal(id, title);
+        }
+    }, [vm.openModal]);
     return (
         <DrawerContentScrollView {...props} contentContainerStyle={[styles.drawerContainer, { paddingTop: insets.top }]}>
             {/* Header to attach pdf */}
@@ -66,6 +86,12 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                         </TouchableOpacity>
                     </View>
                 )}
+                {vm.isDeleteLoading && (
+                    <View style={{ position: "absolute", right: 83 }}>
+
+                        <ActivityIndicator animating={true} size="small" color="#00796B" />
+                    </View>
+                )}
             </View>
 
             {/* Passing items */}
@@ -75,6 +101,10 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                     session={session}
                     isActive={session.id === vm.currentSessionId && !vm.isSelectionMode}
                     isSelected={vm.selectedIds.includes(session.id)}
+                    isSelectionMode={vm.isSelectionMode}
+                    styles={styles}
+                    onPress={handleSessionPress}
+                    onLongPress={handleSessionLongPress}
                 />
             ))}
 

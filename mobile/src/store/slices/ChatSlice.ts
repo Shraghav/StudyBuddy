@@ -18,11 +18,13 @@ export interface ChatSession {
 interface ChatState {
   sessions: ChatSession[];
   currentSessionId: string | null;
+  isLoading: boolean;
 }
 
 const initialState: ChatState = {
   sessions: [],
   currentSessionId: null,
+  isLoading: true,
 };
 
 const chatSlice = createSlice({
@@ -66,7 +68,7 @@ const chatSlice = createSlice({
       }
     },
     removeFiles: (state, action: PayloadAction<string[]>) => {
-      const deletedIds = action.payload; 
+      const deletedIds = action.payload;
 
       state.sessions = state.sessions.map((session) => {
         if (
@@ -76,7 +78,7 @@ const chatSlice = createSlice({
           return {
             ...session,
             attachedDocId: undefined,
-            attachedDocName: undefined
+            attachedDocName: undefined,
           };
         }
         return session;
@@ -84,7 +86,11 @@ const chatSlice = createSlice({
     },
     attachDocumentToSession: (
       state,
-      action: PayloadAction<{ sessionId: string; docName: string, docId:string }>,
+      action: PayloadAction<{
+        sessionId: string;
+        docName: string;
+        docId: string;
+      }>,
     ) => {
       const session = state.sessions.find(
         (s) => s.id === action.payload.sessionId,
@@ -101,7 +107,10 @@ const chatSlice = createSlice({
       if (action.payload.length > 0 && !state.currentSessionId) {
         state.currentSessionId = action.payload[0].id;
       }
-    }
+    },
+    setSessionsLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
   },
 });
 
@@ -114,5 +123,6 @@ export const {
   attachDocumentToSession,
   setSessions,
   removeFiles,
+  setSessionsLoading
 } = chatSlice.actions;
 export default chatSlice.reducer;

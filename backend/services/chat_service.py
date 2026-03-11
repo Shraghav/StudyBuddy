@@ -123,11 +123,10 @@ class ChatService:
     @staticmethod
     async def get_full_history(db: AsyncSession):
        """
-        Fetches all chat sessions and formats them for the frontend Redux state.
+        Fetches all chat sessions and formats them for the frontend Redux state (ChatSlice.ts).
 
         This method maps database models to the 'ChatSession' interface expected 
-        by the React Native application, including nested messages and 
-        attached document names.
+        by the React Native app
 
         Args:
             db (AsyncSession): Database session dependency.
@@ -142,7 +141,7 @@ class ChatService:
                 history.append({
                     "id": str(s.id),
                     "title": s.title,
-                    "attachedDocName": s.document.name if s.document else None,
+                    "attachedDocName": s.document.name,
                     "messages": [
                         {
                             "id": str(m.id),

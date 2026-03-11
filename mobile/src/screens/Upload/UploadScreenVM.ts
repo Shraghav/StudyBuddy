@@ -1,21 +1,82 @@
 import { decode } from "base64-arraybuffer";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import "react-native-get-random-values";
 import { useDispatch, useSelector } from "react-redux";
-
 import { apiClient } from "../../services/api/api_client";
 import { supabase } from "../../services/db/superbase";
 import { RootState } from "../../store";
 import { removeFiles } from "../../store/slices/ChatSlice";
 import {
   addFiles,
-  removeFile,
+  removeMultipleFiles,
   setFiles,
   updateFileName,
 } from "../../store/slices/FileSlice";
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#ffffff" },
+  header: { padding: 30, backgroundColor: "#f0f0f0", borderRadius: 30 },
+  title: { fontSize: 24, fontWeight: "bold", color: "#01212b" },
+  subtitle: { fontSize: 14, color: "#546E7A", marginTop: 5 },
+  content: { flex: 1, paddingHorizontal: 20 },
+  uploadBtn: { marginVertical: 20 },
+  listContainer: { flex: 1 },
+  listHeader: { fontSize: 18, fontWeight: "700", color: "#263238" },
+  emptyState: { alignItems: "center", marginTop: 50 },
+  emptyText: { fontSize: 16, fontWeight: "600", color: "#90A4AE" },
+  emptySubText: { fontSize: 14, color: "#B0BEC5", marginTop: 5 },
+  flatListContent: { paddingBottom: 20 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 25,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#01212b",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  cancelBtn: { flex: 0.45, backgroundColor: "#90A4AE" },
+  saveBtn: { flex: 0.45 },
+  rowHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginVertical: 15,
+  },
+  actionIcons: { flexDirection: "row", alignItems: "center" },
+  iconBtn: { marginLeft: 20 },
+  selectedCard: {
+    borderColor: "#ff1616",
+    borderWidth: 2,
+    backgroundColor: "#efc2c2",
+  },
+  unselectedCard: {
+    borderColor: "#00796B",
+    borderWidth: 2,
+    backgroundColor: "#E0F2F1",
+  },
+  selectBtn: { backgroundColor: "#263238", marginBottom: 20 },
+  iconDimensions: { height: 20, width: 20 },
+  initialLoadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  deleteloading : { position: "absolute", right: 65 }
+});
 
 export const UploadScreenVM = () => {
   // hooks
@@ -30,7 +91,17 @@ export const UploadScreenVM = () => {
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isCooldown, setIsCooldown] = useState(false);
-  const COOLDOWN_TIME_MS = 10000;
+  const COOLDOWN_TIME_MS = 7000;
+  const uploadBtnStyle = useMemo(
+    () =>
+      StyleSheet.flatten([styles.uploadBtn, { opacity: isCooldown ? 0.5 : 1 }]),
+    [isCooldown],
+  );
+
+  const uploadBtnTxtStyle = useMemo(
+    () => StyleSheet.flatten([{ color: isCooldown ? "#262f33" : "white" }]),
+    [isCooldown],
+  );
 
   // Fetch existing files from Postgres on load
   useEffect(() => {
@@ -45,71 +116,10 @@ export const UploadScreenVM = () => {
       }
     };
     fetchFiles();
-  }, []);
-
-  const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#ffffff" },
-    header: { padding: 30, backgroundColor: "#f0f0f0", borderRadius: 30 },
-    title: { fontSize: 24, fontWeight: "bold", color: "#01212b" },
-    subtitle: { fontSize: 14, color: "#546E7A", marginTop: 5 },
-    content: { flex: 1, paddingHorizontal: 20 },
-    uploadBtn: { marginVertical: 20, opacity: isCooldown ? 0.5 : 1 },
-    listContainer: { flex: 1 },
-    listHeader: { fontSize: 18, fontWeight: "700", color: "#263238" },
-    emptyState: { alignItems: "center", marginTop: 50 },
-    emptyText: { fontSize: 16, fontWeight: "600", color: "#90A4AE" },
-    emptySubText: { fontSize: 14, color: "#B0BEC5", marginTop: 5 },
-    flatListContent: { paddingBottom: 20 },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.5)",
-      justifyContent: "center",
-      padding: 20,
-    },
-    modalContent: {
-      backgroundColor: "#fff",
-      borderRadius: 20,
-      padding: 25,
-      elevation: 10,
-    },
-    modalTitle: {
-      fontSize: 20,
-      fontWeight: "bold",
-      marginBottom: 20,
-      color: "#01212b",
-    },
-    modalActions: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginTop: 10,
-    },
-    cancelBtn: { flex: 0.45, backgroundColor: "#90A4AE" },
-    saveBtn: { flex: 0.45 },
-    rowHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginVertical: 15,
-    },
-    actionIcons: { flexDirection: "row", alignItems: "center" },
-    iconBtn: { marginLeft: 20 },
-    selectedCard: {
-      borderColor: "#ff1616",
-      borderWidth: 2,
-      backgroundColor: "#efc2c2",
-    },
-    unselectedCard: {
-      borderColor: "#00796B",
-      borderWidth: 2,
-      backgroundColor: "#E0F2F1",
-    },
-    selectBtn: { backgroundColor: "#263238", marginBottom: 20 },
-    iconDimensions: { height: 20, width: 20 },
-    uploadBtnTxt: { color: isCooldown ? "#262f33" :"white"},
-  });
+  }, [dispatch]);
 
   // Model function to open, close modal
-  const openModal = (id: string, currentName: string) => {
+  const openModal = useCallback((id: string, currentName: string) => {
     try {
       setCurrentFileId(id);
       setdocName(currentName.replace(".pdf", ""));
@@ -117,8 +127,8 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error occured in openModel:", error);
     }
-  };
-  const closeModal = () => {
+  },[]);
+  const closeModal = useCallback(() => {
     try {
       setIsModalVisible(false);
       setCurrentFileId(null);
@@ -126,10 +136,10 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error occured in closeModal:", error);
     }
-  };
+  },[]);
 
   // Confirming rename with backend and updating UI
-  const confirmRename = async () => {
+  const confirmRename = useCallback(async () => {
     try {
       if (currentFileId && docName.trim()) {
         const finalName = docName.trim().endsWith(".pdf")
@@ -146,18 +156,18 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error in confirmRename:", error);
     }
-  };
+  },[currentFileId, docName, dispatch, closeModal]);
 
-  const handleDocName = (name: string) => {
+  const handleDocName = useCallback((name: string) => {
     try {
       setdocName(name);
     } catch (error) {
       console.error("Error in setDocName:", error);
     }
-  };
+  },[]);
 
   // selecting files and toggling the selected files
-  const enterSelectionMode = () => {
+  const enterSelectionMode = useCallback(() => {
     try {
       if (currentFileId) {
         setSelectedIds([currentFileId]);
@@ -167,8 +177,8 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error occured in enterSelectionMode:", error);
     }
-  };
-  const toggleSelection = (id: string) => {
+  },[currentFileId]);
+  const toggleSelection = useCallback((id: string) => {
     try {
       setSelectedIds((prev) => {
         const isAlreadySelected = prev.includes(id);
@@ -187,39 +197,39 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error occured in toggleSelection:", error);
     }
-  };
+  },[]);
 
   // deleting selected files and exiting selection
-  const deleteSelectedFiles = async () => {
+   const exitSelection = useCallback(() => {
+     try {
+       setIsSelectionMode(false);
+       setSelectedIds([]);
+     } catch (error) {
+       console.error("Error occured in exit selection:", error);
+     }
+   },[]);
+  const deleteSelectedFiles = useCallback(async () => {
     try {
       setIsDeleteLoading(true);
       await apiClient.delete("/documents/batch", { data: selectedIds });
       dispatch(removeFiles(selectedIds));
-      selectedIds.forEach((id) => dispatch(removeFile(id)));
+      dispatch(removeMultipleFiles(selectedIds));
       exitSelection();
     } catch (error) {
       console.error("Error in deleteSelectedFiles:", error);
     } finally {
       setIsDeleteLoading(false);
     }
-  };
-  const exitSelection = () => {
-    try {
-      setIsSelectionMode(false);
-      setSelectedIds([]);
-    } catch (error) {
-      console.error("Error occured in exit selection:", error);
-    }
-  };
+  }, [selectedIds, dispatch, exitSelection]);
+ 
 
   // Picking documents and storing the embeddings
-  const pickDocuments = async () => {
+  const pickDocuments = useCallback(async () => {
     try {
-      // Document picker
       if (isUploading || isCooldown) return;
       const result = await DocumentPicker.getDocumentAsync({
         type: "application/pdf",
-        multiple: true,
+        multiple: false,
         copyToCacheDirectory: true,
       });
       if (!result.canceled) {
@@ -270,7 +280,7 @@ export const UploadScreenVM = () => {
         setIsCooldown(false);
       }, COOLDOWN_TIME_MS);
     }
-  };
+  }, [isUploading, isCooldown, dispatch]);
 
   return {
     uploadedFiles,
@@ -292,5 +302,7 @@ export const UploadScreenVM = () => {
     isLoadingInitial,
     isDeleteLoading,
     isCooldown,
+    uploadBtnStyle,
+    uploadBtnTxtStyle,
   };
 };

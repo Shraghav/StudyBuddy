@@ -34,7 +34,7 @@ class DocumentService:
 
         Args:
             db (AsyncSession): Database session dependency.
-            file (UploadFile): The uploaded multipart file object.
+            file (DocumentCreate): The uploaded file object.
 
         Returns:
             Document: The newly created document database record.
@@ -156,7 +156,6 @@ class DocumentService:
             Exception: If the batch deletion fails.
         """
         try: 
-            # Delete from DB and get the URLs of the files to remove
             file_urls = await DocumentRepository.delete_documents(db, doc_ids)
 
             if not file_urls:
@@ -171,14 +170,8 @@ class DocumentService:
                 # Convert %20 back to spaces, etc.
                 decoded_path = unquote(encoded_path)
                 file_paths.append(decoded_path)
-
                 # Call Supabase remove with the clean paths
-                result = supabase.storage.from_("study-buddy-docs").remove(file_paths)
-                # Log the result to verify
-                print(f"Supabase delete result: {result}")
-
                 supabase.storage.from_("study-buddy-docs").remove(file_paths)
-                
                 return True
         except Exception as e:
             print(f"Error in service delete_files: {e}")

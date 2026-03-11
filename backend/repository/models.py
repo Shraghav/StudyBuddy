@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
 from repository.database import Base
-from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, LargeBinary, String,Text)
+from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, String,Text)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
@@ -28,6 +28,7 @@ class Document(Base):
     size = Column(Integer)
     upload_date = Column(DateTime, default=lambda: datetime.utcnow())
     file_url = Column(String, nullable=False)
+    
     owner = relationship("User", back_populates="documents")
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="document", cascade="all, delete")
