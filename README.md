@@ -1,1 +1,91 @@
 # StudyBuddy
+
+A full-stack mobile app designed to help users interact with their study materials. It allows users to upload PDF documents, store them securely in the cloud, and ask context-aware questions about the content using an AI-powered chat interface.
+
+## Tech Stack
+
+* **Frontend:** React Native (TypeScript) with Expo
+* **Backend:** FastAPI (Python) and render.com for deployment
+* **Database & Storage:** PostgreSQL and Cloud Storage via Supabase
+
+---
+
+## Features
+
+### 1. Document Management (Upload Screen)
+
+* **Upload Documents:** Users can pick and upload a single PDF at a time using the React Native file picker. A built-in cooldown prevents spamming uploads.
+* **Cloud Integration:** Files are sent to the FastAPI backend, where the physical file is stored in Supabase Storage, and the document metadata/URL is saved in the PostgreSQL database. A spinning loader indicates the background processing status.
+* **File Actions Modal:** Tapping a displayed file opens a modal with three options:
+* **Select File:** Marks the file for batch selection.
+* **Save Name:** Renames the file via a text input.
+* **Cancel:** Closes the modal without making changes.
+
+
+* **Batch Deletion:** Once files are selected, top-bar action buttons appear allowing the user to either cancel the selection or delete the files. Deleting removes the database record and the metadata file from Supabase storage.
+
+### 2. AI Chat Assistant (Chat Screen & Drawer)
+
+* **Session Management:** Users can navigate to the Chat tab and use the Chat Drawer to create a new session.
+* **Document Context:** To ask questions, users must first attach a previously uploaded document to the active chat session. The AI's answers are generated based on the attached document.
+* **Drawer Controls:** Similar to the upload screen, the drawer allows users to long-press chat sessions to rename them or perform batch deletions.
+* **Comprehensive API:** The chat functionality is supported by 6 backend endpoints handling session creation, deletion, renaming, fetching history, attaching documents, and processing the chat Q&A.
+
+---
+
+## Prerequisites
+
+Before running the project, ensure you have the following installed on your system:
+
+* [Docker](https://www.docker.com/) & Docker Compose
+* [Node.js](https://nodejs.org/) (LTS recommended)
+* [Expo CLI](https://docs.expo.dev/get-started/installation/)
+* A Supabase account (for PostgreSQL and Storage configuration)
+
+---
+
+## Running the Application
+
+### 1. Backend (FastAPI via Docker)
+
+Navigate to the study_buddy directory and spin up the Docker containers.
+
+```bash
+cd study_buddy
+docker compose build
+docker compose up
+
+```
+
+**API Documentation:** Once the Docker container is running, FastAPI automatically generates interactive API documentation. You can access the Swagger UI by navigating to `http://localhost:8000/docs` in your browser.
+
+### 2. Frontend (React Native via Expo)
+
+Before starting the mobile app, you need to point the frontend to your local backend.
+
+1. Navigate to the mobile directory.
+2. Open `apiclient.ts` and change the base URL to point to your local backend:
+```typescript
+// Example inside apiclient.ts
+baseURL: "http://localhost:8000" // Ensure this matches your network setup if testing on a physical device
+
+```
+
+
+
+Run the application using Expo:
+
+```bash
+# To run the app using Expo Go or an emulator
+npx expo start
+
+# To create a physical build (requires prebuild setup)
+npx expo run
+
+```
+
+---
+
+*Developed by Harish Raghavan.*
+
+Would you like me to write out a `.env.example` template to go alongside this README so other developers know which Supabase and API keys they need to configure?
