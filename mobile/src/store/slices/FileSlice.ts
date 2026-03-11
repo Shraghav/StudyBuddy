@@ -26,8 +26,8 @@ const fileSlice = createSlice({
     addFiles: (state, action: PayloadAction<FileDetail[]>) => {
       state.files = [...state.files, ...action.payload];
     },
-    removeFile: (state, action: PayloadAction<string>) => {
-      state.files = state.files.filter((file) => file.id !== action.payload);
+    removeMultipleFiles: (state, action: PayloadAction<string[]>) => {
+      state.files = state.files.filter((file) => !action.payload.includes(file.id));
     },
     updateFileName: (
       state,
@@ -41,6 +41,6 @@ const fileSlice = createSlice({
   },
 });
 
-export const { setFiles, addFiles, removeFile, updateFileName } =
+export const { setFiles, addFiles, removeMultipleFiles, updateFileName } =
   fileSlice.actions;
 export default fileSlice.reducer;

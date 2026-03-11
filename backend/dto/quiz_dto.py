@@ -1,11 +1,8 @@
-from datetime import datetime
-from typing import Dict, List, Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
 
-
-# --- REQUESTS ---
 class QuizSetupParamsDTO(BaseModel):
     numQuestions: str
     difficulty: str
@@ -17,14 +14,12 @@ class QuizSessionCreate(BaseModel):
     document_id: Optional[UUID] = None
     setup_params: QuizSetupParamsDTO
 
-# --- RESPONSES ---
 class QuizQuestionResponse(BaseModel):
     id: UUID
     text: str
     type: str
     options: Optional[List[str]]
     correct_answer: str
-
     class Config:
         from_attributes = True
 
@@ -36,6 +31,5 @@ class QuizSessionResponse(BaseModel):
     score: int
     feedback: Optional[str]
     questions: List[QuizQuestionResponse] = []
-
     class Config:
         from_attributes = True

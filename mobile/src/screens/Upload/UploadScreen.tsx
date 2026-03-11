@@ -1,19 +1,34 @@
-import React from 'react';
-import { ActivityIndicator, FlatList, Image, Modal, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { ActivityIndicator, FlatList, Image, ListRenderItem, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { FileCard } from '../../components/FileCard/FileCard';
+import { FileDetail } from '../../store/slices/FileSlice';
 import { Images } from '../../utils/Images';
 import { UploadScreenVM } from './UploadScreenVM';
-
 
 export const UploadScreen = () => {
   const vm = UploadScreenVM();
   const styles = vm.styles
   const insets = useSafeAreaInsets();
+  const renderItem: ListRenderItem<FileDetail> = useCallback(({ item }) => {
+    const isSelected = vm.selectedIds.includes(item.id);
+    return (
+      <FileCard
+        name={item.name}
+        onPress={() => {
+          vm.isSelectionMode ? vm.toggleSelection(item.id) : vm.openModal(item.id, item.name);
+        }}
+        style={isSelected ? styles.selectedCard : styles.unselectedCard}
+      />
+    );
+  }, [vm.isSelectionMode, vm.selectedIds, vm.toggleSelection, vm.openModal, styles]);
 
+  const keyExtractor = useCallback((item: any, index: number) => {
+    return item.id ? String(item.id) : `temp-${index}`;
+  }, []);
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom - 10 }]}>
       {/* Header to upload pdf files */}
@@ -33,7 +48,7 @@ export const UploadScreen = () => {
               </Text>
             </View>
           ) : (
-            <CustomButton title="Upload PDF Files" onPress={vm.pickDocuments} viewstyle={styles.uploadBtn} />
+            <CustomButton title={vm.isCooldown ? "Wait for a second..." : "Upload PDF"} onPress={vm.pickDocuments} viewstyle={vm.uploadBtnStyle} disabled={vm.isCooldown} textStyle={vm.uploadBtnTxtStyle} />
           )
         )}
 
@@ -54,37 +69,34 @@ export const UploadScreen = () => {
                 </TouchableOpacity>
               </View>
             )}
+            {vm.isDeleteLoading && (
+              <View style={styles.deleteloading}>
+                <ActivityIndicator animating={true} size="small" color="#00796B" />
+              </View>
+            )}
           </View>
 
-          <FlatList
-            data={vm.uploadedFiles}
-            keyExtractor={(item, index) => {
-              const id = item.id ? String(item.id) : `temp-${index}`;
-              return id;
-            }}
-            renderItem={({ item, }) => {
-              const isSelected = vm.selectedIds.includes(item.id);
-              return (
-                <FileCard
-                  name={item.name}
-                  onPress={() => {
-                    vm.isSelectionMode && vm.toggleSelection(item.id)
-                    !vm.isSelectionMode && vm.openModal(item.id, item.name)
-                  }}
-                  style={isSelected ? styles.selectedCard : styles.unselectedCard}
-                />
-
-              );
-            }}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No files uploaded yet.</Text>
-                <Text style={styles.emptySubText}>Select multiple PDFs to see them here.</Text>
-              </View>
-            }
-            contentContainerStyle={styles.flatListContent}
-
-          />
+          {vm.isLoadingInitial ? (
+            // Fetching data
+            <View style={styles.initialLoadingContainer}>
+              <ActivityIndicator animating={true} size="large" color="#00796B" />
+              <Text style={[styles.emptyText]}>Loading your uploaded documents...</Text>
+            </View>
+          ) : (
+            // once loading is complete (even if empty)
+            <FlatList
+              data={vm.uploadedFiles}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No files uploaded yet.</Text>
+                  <Text style={styles.emptySubText}>Select multiple PDFs to see them here.</Text>
+                </View>
+              }
+              contentContainerStyle={styles.flatListContent}
+            />
+          )}
         </View>
       </View>
 
