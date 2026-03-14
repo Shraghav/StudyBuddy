@@ -80,7 +80,7 @@ class ChatService:
             print(f"Error in ChatService.ask_question: {e}")
             raise e
         
-    async def invoke_create_session(db: AsyncSession,user_id,title, document_id: UUID):
+    async def invoke_create_session(db: AsyncSession,user_id:UUID,title, document_id: UUID):
         """
         Initializes a new chat session record in the repository.
 
@@ -101,7 +101,7 @@ class ChatService:
             print(f"Error in ChatService.create_session: {e}")
             raise e
     
-    async def update_document(db: AsyncSession,session_id:UUID, document_id: UUID):
+    async def update_document(db: AsyncSession,user_id:UUID,session_id:UUID, document_id: UUID):
         """
         Updates the document association for an existing chat session.
 
@@ -114,14 +114,14 @@ class ChatService:
             dict: Confirmation containing the updated session details.
         """
         try:
-            session = await ChatRepository.update_session_document(db, session_id, document_id)
+            session = await ChatRepository.update_session_document(db,user_id, session_id, document_id)
             return {"Updated document": session}
         except Exception as e:
             print(f"Error in ChatService.create_session: {e}")
             raise e
     
     @staticmethod
-    async def get_full_history(db: AsyncSession):
+    async def get_full_history(user_id:UUID, db: AsyncSession):
        """
         Fetches all chat sessions and formats them for the frontend Redux state (ChatSlice.ts).
 
@@ -135,13 +135,16 @@ class ChatService:
             list[dict]: A list of formatted session objects with message history.
         """
        try:
-           sessions = await ChatRepository.get_all_sessions(db)
+           sessions = await ChatRepository.get_all_sessions(user_id, db)
+           print("Sessions:", sessions)
+           if(len(sessions)<0):
+               return
            history = []
            for s in sessions:
                 history.append({
                     "id": str(s.id),
                     "title": s.title,
-                    "attachedDocName": s.document.name,
+                    "attachedDocName": s.document.name if s.document else "No document attached",
                     "messages": [
                         {
                             "id": str(m.id),
@@ -156,7 +159,7 @@ class ChatService:
            print("Error occured in getfullchathistory:", e)
     
     @staticmethod
-    async def update_session_title(db: AsyncSession, session_id: UUID, new_title: str):
+    async def update_session_title(db: AsyncSession,user_id:UUID, session_id: UUID, new_title: str):
         """
         Modifies the display title of a specific chat session.
 
@@ -169,14 +172,14 @@ class ChatService:
             dict: A success message confirmation.
         """
         try:
-            await ChatRepository.rename_session(db, session_id, new_title)
+            await ChatRepository.rename_session(db,user_id, session_id, new_title)
             return {"message": "Session renamed successfully"}
         except Exception as e:
             print(f"Error in ChatService.update_session_title: {e}")
             raise e
 
     @staticmethod
-    async def remove_sessions(db: AsyncSession, session_ids: List[UUID]):
+    async def remove_sessions(db: AsyncSession,user_id:UUID, session_ids: List[UUID]):
         """
         Deletes a batch of chat sessions and their associated message history.
 
@@ -188,7 +191,7 @@ class ChatService:
             dict: A confirmation message indicating the number of deleted sessions.
         """
         try:
-            await ChatRepository.delete_sessions(db, session_ids)
+            await ChatRepository.delete_sessions(db, user_id, session_ids)
             return {"message": f"Successfully deleted {len(session_ids)} sessions"}
         except Exception as e:
             print(f"Error in ChatService.remove_sessions: {e}")

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import "react-native-get-random-values";
 import { useDispatch, useSelector } from "react-redux";
+
 import { apiClient } from "../../services/api/api_client";
 import { supabase } from "../../services/db/superbase";
 import { RootState } from "../../store";
@@ -74,8 +75,12 @@ const styles = StyleSheet.create({
   },
   selectBtn: { backgroundColor: "#263238", marginBottom: 20 },
   iconDimensions: { height: 20, width: 20 },
-  initialLoadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  deleteloading : { position: "absolute", right: 65 }
+  initialLoadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteloading: { position: "absolute", right: 65 },
 });
 
 export const UploadScreenVM = () => {
@@ -107,7 +112,7 @@ export const UploadScreenVM = () => {
   useEffect(() => {
     const fetchFiles = async () => {
       try {
-        const response = await apiClient.get("/documents/");
+        const response = await apiClient.get(`/documents/`);
         dispatch(setFiles(response.data));
       } catch (error) {
         console.error("Error fetching files from API:", error);
@@ -127,7 +132,7 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error occured in openModel:", error);
     }
-  },[]);
+  }, []);
   const closeModal = useCallback(() => {
     try {
       setIsModalVisible(false);
@@ -136,7 +141,7 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error occured in closeModal:", error);
     }
-  },[]);
+  }, []);
 
   // Confirming rename with backend and updating UI
   const confirmRename = useCallback(async () => {
@@ -156,7 +161,7 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error in confirmRename:", error);
     }
-  },[currentFileId, docName, dispatch, closeModal]);
+  }, [currentFileId, docName, dispatch, closeModal]);
 
   const handleDocName = useCallback((name: string) => {
     try {
@@ -164,7 +169,7 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error in setDocName:", error);
     }
-  },[]);
+  }, []);
 
   // selecting files and toggling the selected files
   const enterSelectionMode = useCallback(() => {
@@ -177,7 +182,7 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error occured in enterSelectionMode:", error);
     }
-  },[currentFileId]);
+  }, [currentFileId]);
   const toggleSelection = useCallback((id: string) => {
     try {
       setSelectedIds((prev) => {
@@ -197,21 +202,23 @@ export const UploadScreenVM = () => {
     } catch (error) {
       console.error("Error occured in toggleSelection:", error);
     }
-  },[]);
+  }, []);
 
   // deleting selected files and exiting selection
-   const exitSelection = useCallback(() => {
-     try {
-       setIsSelectionMode(false);
-       setSelectedIds([]);
-     } catch (error) {
-       console.error("Error occured in exit selection:", error);
-     }
-   },[]);
+  const exitSelection = useCallback(() => {
+    try {
+      setIsSelectionMode(false);
+      setSelectedIds([]);
+    } catch (error) {
+      console.error("Error occured in exit selection:", error);
+    }
+  }, []);
   const deleteSelectedFiles = useCallback(async () => {
     try {
       setIsDeleteLoading(true);
-      await apiClient.delete("/documents/batch", { data: selectedIds });
+      await apiClient.delete(`/documents/batch`, {
+        data: selectedIds,
+      });
       dispatch(removeFiles(selectedIds));
       dispatch(removeMultipleFiles(selectedIds));
       exitSelection();
@@ -221,7 +228,6 @@ export const UploadScreenVM = () => {
       setIsDeleteLoading(false);
     }
   }, [selectedIds, dispatch, exitSelection]);
- 
 
   // Picking documents and storing the embeddings
   const pickDocuments = useCallback(async () => {
@@ -257,11 +263,11 @@ export const UploadScreenVM = () => {
             .getPublicUrl(filePath);
 
           const publicUrl = urlData.publicUrl;
-          // 4. Calling backend with JSON (No more formData!)
+          // 4. Calling backend with JSON
           const response = await apiClient.post(`/documents/upload`, {
             name: asset.name,
             file_url: publicUrl,
-            size: asset.size!,
+            size: asset.size,
           });
           const localFileWithServerId = {
             ...response.data,

@@ -3,12 +3,14 @@ import {
     KeyboardAvoidingView, Platform,
     Text,
     TouchableOpacity,
-    View
+    View,
+    Image
 } from 'react-native';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { LoginScreenVM } from './LoginScreenVM';
+import { Images } from '../../utils/Images';
 
 
 const LoginScreen = () => {
@@ -23,7 +25,7 @@ const LoginScreen = () => {
 
                 {/* Header Section */}
                 <View style={styles.header}>
-                    <Text style={styles.logoText}>📚 StudyBuddy</Text>
+                    <Text style={styles.logoText}>StudyBuddy</Text>
                     <Text style={styles.subtitle}>Unlock your potential </Text>
                 </View>
 
@@ -37,14 +39,17 @@ const LoginScreen = () => {
                         autoCapitalize="none"
                         keyboardType="email-address"
                     />
-
-                    <CustomInput
-                        label="Password"
-                        value={vm.password}
-                        onChangeText={vm.setPassword}
-                        secureTextEntry
-                    />
-
+                    <View>
+                        <CustomInput
+                            label="Password"
+                            value={vm.password}
+                            onChangeText={vm.setPassword}
+                            secureTextEntry={!vm.passwordVisible}
+                        />
+                        <TouchableOpacity onPress={() => vm.passwordIconVisible(vm.passwordVisible)} style={{ position: "absolute", right:10 }}>
+                            <Image source={vm.passwordVisible ? Images.password_open : Images.password_close} style={{ height: 20, width: 20 }} />
+                        </TouchableOpacity>
+                    </View>
                     {vm.error && <Text style={styles.errorText}>{vm.error}</Text>}
 
                     <CustomButton

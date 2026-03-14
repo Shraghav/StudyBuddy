@@ -2,14 +2,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import { Image } from 'react-native';
 
-import {UploadScreen} from '../screens/Upload/UploadScreen';
+import { UploadScreen } from '../screens/Upload/UploadScreen';
 import { Images } from '../utils/Images';
 import { ChatDrawer } from './Drawer/ChatDrawer';
 import { QuizDrawer } from './Drawer/QuizDrawer';
+import { BottomTabParamList } from './types';
+import ProfileScreen from '../screens/Profile/ProfileScreen';
 
-
-const Tab = createBottomTabNavigator();
-
+const Tab = createBottomTabNavigator<BottomTabParamList>();
 export const BottomTabs = () => {
     return (
         <Tab.Navigator
@@ -25,6 +25,9 @@ export const BottomTabs = () => {
                         iconSource = Images.chat;
                     } else if (route.name === 'Quiz') {
                         iconSource = Images.quiz;
+                    }
+                    else {
+                        iconSource = Images.user
                     }
                     return (
                         <Image
@@ -43,6 +46,7 @@ export const BottomTabs = () => {
             <Tab.Screen name="Upload" component={UploadScreen} />
             <Tab.Screen name="Chat" component={ChatDrawer} />
             <Tab.Screen name="Quiz" component={QuizDrawer} />
+            <Tab.Screen name ="Profile" component={ProfileScreen}/>
         </Tab.Navigator>
     );
 };

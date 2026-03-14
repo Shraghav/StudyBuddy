@@ -1,9 +1,10 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, TouchableOpacity, View, Image } from 'react-native';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { SignupVM } from './SignupScreenVM';
+import { Images } from '../../utils/Images';
 
 
 const SignupScreen = () => {
@@ -20,31 +21,34 @@ const SignupScreen = () => {
 
         <View style={styles.card}>
           <CustomInput
-            label="Full Name"
-            placeholder="Peter"
-            value={vm.fullName}
-            onChangeText={vm.setFullName}
-          />
-          <CustomInput
             label="Email"
             placeholder="peter@example.com"
             keyboardType="email-address"
             value={vm.email}
             onChangeText={vm.setEmail}
           />
-          <CustomInput
-            label="Password"
-            secureTextEntry
-            value={vm.password}
-            onChangeText={vm.setPassword}
-          />
-          <CustomInput
-            label="Confirm Password"
-            secureTextEntry
-            value={vm.confirmPassword}
-            onChangeText={vm.setConfirmPassword}
-          />
-
+          <View>
+            <CustomInput
+              label="Password"
+              secureTextEntry={!vm.passwordVisible}
+              value={vm.password}
+              onChangeText={vm.setPassword}
+            />
+            <TouchableOpacity onPress={() => vm.passwordIconVisible(vm.passwordVisible)} style={{ position: "absolute", right: 10 }}>
+              <Image source={vm.passwordVisible ? Images.password_open : Images.password_close} style={{ height: 20, width: 20 }} />
+            </TouchableOpacity>
+          </View>
+          <View>
+            <CustomInput
+              label="Confirm Password"
+              secureTextEntry = {!vm.confirmPasswordVisible}
+              value={vm.confirmPassword}
+              onChangeText={vm.setConfirmPassword}
+            />
+            <TouchableOpacity onPress={() => vm.confirmPasswordIconVisible(vm.confirmPasswordVisible)} style={{ position: "absolute", right: 10 }}>
+              <Image source={vm.confirmPasswordVisible ? Images.password_open : Images.password_close} style={{ height: 20, width: 20 }} />
+            </TouchableOpacity>
+          </View>
           <CustomButton
             title="Create Account"
             onPress={vm.handleSignup}

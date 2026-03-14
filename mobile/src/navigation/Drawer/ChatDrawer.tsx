@@ -88,14 +88,13 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                 )}
                 {vm.isDeleteLoading && (
                     <View style={{ position: "absolute", right: 83 }}>
-
                         <ActivityIndicator animating={true} size="small" color="#00796B" />
                     </View>
                 )}
             </View>
 
             {/* Passing items */}
-            {vm.sessions.map((session: ChatSession, index) => (
+            {vm.sessions.length > 0 && vm.sessions.map((session: ChatSession, index) => (
                 <SessionItem
                     key={session.id || `temp-${index}`}
                     session={session}

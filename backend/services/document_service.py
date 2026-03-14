@@ -1,11 +1,10 @@
 import hashlib
 import os
+import uuid
 from urllib.parse import unquote
 from uuid import UUID
-import uuid
 
 import httpx
-from utils.utils import supabase
 from dto.document_dto import DocumentCreate
 from fastapi import UploadFile
 from langchain_community.document_loaders import PyPDFLoader
@@ -16,12 +15,14 @@ from repository.models import DocumentChunk
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from utils.supabase_utils import supabase
+
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class DocumentService:
     @staticmethod
-    async def upload_file(db: AsyncSession, file: DocumentCreate):
+    async def upload_file(db: AsyncSession,user_id:UUID, file: DocumentCreate):
         """
         Handles the end-to-end workflow for uploading a new PDF document.
 
@@ -46,7 +47,7 @@ class DocumentService:
             unique_filename = f"{uuid.uuid4()}_{file.name}"
             temp_file_location = f"{UPLOAD_DIR}/{unique_filename}"
             new_doc = await DocumentRepository.create_document(
-                db=db, name=file.name, size=file.size, file_url=file.file_url
+                db=db,user_id = user_id, name=file.name, size=file.size, file_url=file.file_url
             )
 
             async with httpx.AsyncClient() as client:
@@ -95,7 +96,7 @@ class DocumentService:
                 os.remove(temp_file_location)
     
     @staticmethod
-    async def fetch_documents(db: AsyncSession):
+    async def fetch_documents(user_id:UUID,db: AsyncSession):
         """
         Retrieves all available documents from the repository.
 
@@ -109,13 +110,13 @@ class DocumentService:
             Exception: If the database query fails.
         """
         try:
-            return await DocumentRepository.get_all_documents(db)
+            return await DocumentRepository.get_all_documents(user_id,db)
         except Exception as e:
             print(f"Error in service fetch_documents: {e}")
             raise e
 
     @staticmethod
-    async def rename_file(db: AsyncSession, doc_id: UUID, new_name: str):
+    async def rename_file(db: AsyncSession,user_id:UUID, doc_id: UUID, new_name: str):
         """
         Updates the display name of a specific document in the database.
 
@@ -131,13 +132,13 @@ class DocumentService:
             Exception: If the update operation fails.
         """
         try:
-            return await DocumentRepository.update_document_name(db, doc_id, new_name)
+            return await DocumentRepository.update_document_name(db,user_id, doc_id, new_name)
         except Exception as e:
             print(f"Error in service rename_file: {e}")
             raise e
 
     @staticmethod
-    async def delete_files(db: AsyncSession, doc_ids: list[UUID]):
+    async def delete_files(db: AsyncSession,user_id:UUID, doc_ids: list[UUID]):
         """
         Deletes multiple documents and their associated data from the system.
 
@@ -156,7 +157,7 @@ class DocumentService:
             Exception: If the batch deletion fails.
         """
         try: 
-            file_urls = await DocumentRepository.delete_documents(db, doc_ids)
+            file_urls = await DocumentRepository.delete_documents(db,user_id, doc_ids)
 
             if not file_urls:
                 return True

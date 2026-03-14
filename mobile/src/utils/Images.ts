@@ -6,5 +6,8 @@ export const Images = {
     delete: require("../images/delete.png"),
     file: require("../images/file.png"),
     cancel: require("../images/cancel.png"),
-    send:require("../images/send.png")
+    send: require("../images/send.png"),
+    user: require("../images/user.png"),
+    password_open: require("../images/password_open.png"),
+    password_close:require("../images/password_closed.png")
 }

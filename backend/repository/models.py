@@ -11,9 +11,8 @@ from sqlalchemy.orm import relationship
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=True)
+    user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_email = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
     documents = relationship("Document", back_populates="owner", cascade="all, delete")
@@ -23,10 +22,10 @@ class User(Base):
 class Document(Base):
     __tablename__ = "documents"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)
     name = Column(String, nullable=False)
     size = Column(Integer)
-    upload_date = Column(DateTime, default=lambda: datetime.utcnow())
+    upload_date = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     file_url = Column(String, nullable=False)
     
     owner = relationship("User", back_populates="documents")
@@ -40,14 +39,14 @@ class DocumentChunk(Base):
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"))
     text_content = Column(Text, nullable=False)
     embedding = Column(Vector(3072)) 
-    content_hash = Column(String(32), index=True, unique=True)
+    content_hash = Column(String(32), index=True)
 
     document = relationship("Document", back_populates="chunks")
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL"), nullable=True)
     title = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
@@ -55,7 +54,6 @@ class ChatSession(Base):
     user = relationship("User", back_populates="chat_sessions")
     document = relationship("Document", back_populates="chat_sessions")
     messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
-
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
@@ -70,7 +68,7 @@ class ChatMessage(Base):
 class QuizSession(Base):
     __tablename__ = "quiz_sessions"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"))
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=True)
     title = Column(String, nullable=False)
     status = Column(Enum("setup", "active", "completed", name="quiz_status_enum"), default="setup")

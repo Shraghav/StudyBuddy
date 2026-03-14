@@ -1,6 +1,6 @@
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { DrawerActions } from "@react-navigation/native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -85,7 +85,6 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [docName, setDocName] = useState("");
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
-
   // To fetch all the chats
   useEffect(() => {
     fetchChatHistory();
@@ -94,7 +93,10 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   const fetchChatHistory = useCallback(async () => {
     try {
       dispatch(setSessionsLoading(true));
-      const response = await apiClient.get("/chat/sessions/all");
+      const response = await apiClient.get(`/chat/sessions/all`);
+      if (!response.data.sessions) {
+        return;
+      }
       if (response.data.status === "success") {
         dispatch(setSessions(response.data.sessions));
       }
@@ -104,7 +106,7 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       dispatch(setSessionsLoading(false)); // Stop loader whether it succeeds or fails
     }
   }, [dispatch]);
-  
+
   // Modal functionalities
   const openModal = useCallback((id: string, currentTitle: string) => {
     try {
@@ -174,7 +176,7 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       if (selectedIds.length === 0) return;
       const payload = { session_ids: selectedIds };
       setIsDeleteLoading(true);
-      await apiClient.post("/chat/sessions/bulk-delete", payload);
+      await apiClient.post(`/chat/sessions/bulk-delete`, payload);
 
       dispatch(removeSessions(selectedIds));
       setIsSelectionMode(false);
@@ -198,7 +200,7 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   const createNewChat = useCallback(async () => {
     try {
       const title = `Study Session ${sessions.length + 1}`;
-      const response = await apiClient.post("/chat/sessions", { title });
+      const response = await apiClient.post(`/chat/sessions`, { title });
       const newSession = response.data.session;
       dispatch(
         addSession({

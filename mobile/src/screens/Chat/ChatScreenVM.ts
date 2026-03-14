@@ -174,14 +174,13 @@ export const ChatScreenVM = () => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [dots, setDots] = useState(".");
 
+
   const isSessionsLoading = useSelector(
     (state: RootState) => state.chat.isLoading,
   );
   const attachedFile = useSelector((state: RootState) =>
     state.files.files.find((f) => f.id === currentSession?.attachedDocId),
   );
-
-
 
   useEffect(() => {
     let interval: any;
@@ -195,25 +194,28 @@ export const ChatScreenVM = () => {
   }, [isChatLoading]);
 
   // Chat Scenarios
-  const selectDocForChat = useCallback(async (doc: FileDetail) => {
-    try {
-      if (!currentSessionId) {
-        console.error("No session available to attach");
-        return;
+  const selectDocForChat = useCallback(
+    async (doc: FileDetail) => {
+      try {
+        if (!currentSessionId) {
+          console.error("No session available to attach");
+          return;
+        }
+        await apiClient.patch(`/chat/${currentSessionId}/attach/${doc.id}`);
+        dispatch(
+          attachDocumentToSession({
+            sessionId: currentSessionId,
+            docName: doc.name,
+            docId: doc.id,
+          }),
+        );
+        setIsDocModalVisible(false);
+      } catch (error) {
+        console.error("Attachment failed:", error);
       }
-      await apiClient.patch(`/chat/${currentSessionId}/attach/${doc.id}`);
-      dispatch(
-        attachDocumentToSession({
-          sessionId: currentSessionId,
-          docName: doc.name,
-          docId: doc.id,
-        }),
-      );
-      setIsDocModalVisible(false);
-    } catch (error) {
-      console.error("Attachment failed:", error);
-    }
-  }, [currentSessionId, dispatch]);
+    },
+    [currentSessionId, dispatch],
+  );
 
   // Sending AI response and handling the user and ai messages
   const sendMessage = useCallback(async () => {
@@ -292,7 +294,7 @@ export const ChatScreenVM = () => {
     } finally {
       setIsChatLoading(false);
     }
-  },[inputText, currentSessionId, currentSession, availableDocs, dispatch]);
+  }, [inputText, currentSessionId, currentSession, availableDocs, dispatch]);
 
   // Setting state variables
   const changeInputText = useCallback((text: string) => {
@@ -301,7 +303,7 @@ export const ChatScreenVM = () => {
     } catch (error) {
       console.error("Error occured in changeInputText:", error);
     }
-  },[]);
+  }, []);
 
   const openDocModal = useCallback(() => {
     try {
@@ -309,14 +311,14 @@ export const ChatScreenVM = () => {
     } catch (error) {
       console.error("Error occured in openDocModal:", error);
     }
-  },[]);
+  }, []);
   const closeDocModal = useCallback(() => {
     try {
       setIsDocModalVisible(false);
     } catch (error) {
       console.error("Error occured in closeModal:", error);
     }
-  },[]);
+  }, []);
 
   return {
     inputText,
