@@ -13,7 +13,7 @@ export const AuthStack = () => {
             initialRouteName="SignIn"
             screenOptions={{
                 headerShown: false,
-                animation: 'slide_from_right',
+                animation: 'simple_push',
             }}
         >
             <Stack.Screen name="SignIn" component={LoginScreen} />

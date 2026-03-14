@@ -65,7 +65,7 @@ class ChatRepository:
             raise e
 
     @staticmethod
-    async def get_session_messages(db: AsyncSession, session_id: UUID):
+    async def get_session_messages(db: AsyncSession, session_id: UUID, user_id:UUID):
         """
         Retrieves all messages associated with a specific session, ordered by time.
 
@@ -80,7 +80,7 @@ class ChatRepository:
             Exception: If the retrieval query fails.
         """
         try:
-            query = select(ChatMessage).where(ChatMessage.session_id == session_id).order_by(ChatMessage.timestamp.asc())
+            query = select(ChatMessage).join(ChatSession).where(ChatMessage.session_id == session_id, ChatSession.user_id == user_id).order_by(ChatMessage.timestamp.asc())
             result = await db.execute(query)
             return result.scalars().all()
         except Exception as e:
@@ -88,7 +88,7 @@ class ChatRepository:
             raise e
     
     @staticmethod
-    async def update_session_document(db: AsyncSession, session_id: UUID, document_id: UUID):
+    async def update_session_document(db: AsyncSession,user_id:UUID, session_id: UUID, document_id: UUID):
         """
         Performs an update operation to link a document to an existing chat session.
 
@@ -106,7 +106,7 @@ class ChatRepository:
         try:
             query = (
                 update(ChatSession)
-                .where(ChatSession.id == session_id)
+                .where(ChatSession.id == session_id, ChatSession.user_id == user_id)
                 .values(document_id=document_id)
             )
             await db.execute(query)
@@ -118,7 +118,7 @@ class ChatRepository:
             raise e
         
     @staticmethod
-    async def get_all_sessions(db: AsyncSession):
+    async def get_all_sessions(user_id:UUID,db: AsyncSession):
         """
         Queries all chat sessions with their related messages and document metadata.
 
@@ -140,17 +140,20 @@ class ChatRepository:
                 .options(
                     selectinload(ChatSession.messages),
                     selectinload(ChatSession.document)
-                )
-                .order_by(ChatSession.created_at.desc()) # Newest first
+                ).where(ChatSession.user_id == user_id)
+                .order_by(ChatSession.created_at.desc()) 
             )
             result = await db.execute(query)
-            return result.scalars().all()
+            sessions = result.scalars().all()
+            print("User id in repo:",user_id )
+            print("Sessions:",sessions)
+            return sessions
         except Exception as e:
             print(f"Error in ChatRepository.get_all_sessions: {e}")
             raise e
     
     @staticmethod
-    async def rename_session(db: AsyncSession, session_id: UUID, new_title: str):
+    async def rename_session(db: AsyncSession,user_id:UUID, session_id: UUID, new_title: str):
         """
         Updates the title field for a specific ChatSession record.
 
@@ -168,7 +171,7 @@ class ChatRepository:
         try:
             query = (
                 update(ChatSession)
-                .where(ChatSession.id == session_id)
+                .where(ChatSession.id == session_id, ChatSession.user_id == user_id)
                 .values(title=new_title)
             )
             await db.execute(query)
@@ -180,7 +183,7 @@ class ChatRepository:
             raise e
 
     @staticmethod
-    async def delete_sessions(db: AsyncSession, session_ids: List[UUID]):
+    async def delete_sessions(db: AsyncSession, user_id:UUID, session_ids: List[UUID]):
         """
         Removes multiple ChatSession records based on a provided list of IDs.
 
@@ -197,7 +200,7 @@ class ChatRepository:
         try:
             query = (
                 delete(ChatSession)
-                .where(ChatSession.id.in_(session_ids))
+                .where(ChatSession.id.in_(session_ids), ChatSession.user_id == user_id)
             )
             await db.execute(query)
             await db.commit()

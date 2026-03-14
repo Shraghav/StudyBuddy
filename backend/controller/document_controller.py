@@ -3,18 +3,20 @@ from typing import List
 from uuid import UUID
 
 from dotenv import load_dotenv
-from dto.document_dto import (DocumentCreate, DocumentRenameRequest, DocumentResponse)
+from dto.document_dto import (DocumentCreate, DocumentRenameRequest,
+                              DocumentResponse)
 from fastapi import APIRouter, Body, Depends, HTTPException
 from repository.database import get_async_session
 from services.document_service import DocumentService
 from sqlalchemy.ext.asyncio import AsyncSession
+from utils.jwt_utils import get_current_user
 
 load_dotenv()
 router = APIRouter(prefix="/documents", tags=["Documents"])
 os.environ["GOOGLE_API_KEY"] = os.getenv('EMBEDDING_KEY')
 
 @router.post("/upload", response_model=DocumentResponse)
-async def upload_document(file: DocumentCreate = Body(...), 
+async def upload_document(user_id: UUID = Depends(get_current_user), file: DocumentCreate = Body(...),
     db: AsyncSession = Depends(get_async_session)):
     """
     Uploads a PDF document and generates vector embeddings.
@@ -32,28 +34,12 @@ async def upload_document(file: DocumentCreate = Body(...),
     try:
         if not file.name.endswith(".pdf"):
             raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-        return await DocumentService.upload_file(db, file)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/", response_model=List[DocumentResponse])
-async def get_documents(db: AsyncSession = Depends(get_async_session)):
-    """
-    Retrieves a list of all uploaded documents and their metadata.
-
-    Args:
-        db (AsyncSession): Database session dependency.
-
-    Returns:
-        List[DocumentResponse]: A list of document metadata objects.
-    """
-    try:
-        return await DocumentService.fetch_documents(db)
+        return await DocumentService.upload_file(db,user_id, file)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/{doc_id}/rename", response_model=DocumentResponse)
-async def rename_document(doc_id: UUID, request: DocumentRenameRequest, db: AsyncSession = Depends(get_async_session)):
+async def rename_document(doc_id: UUID, request: DocumentRenameRequest,user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):
     """
     Updates the display name of an existing document.
 
@@ -69,7 +55,7 @@ async def rename_document(doc_id: UUID, request: DocumentRenameRequest, db: Asyn
         HTTPException: 400 if the document ID is not found, 500 for internal server errors.
     """
     try:
-        updated_doc = await DocumentService.rename_file(db, doc_id, request.new_name)
+        updated_doc = await DocumentService.rename_file(db,user_id, doc_id, request.new_name)
         if not updated_doc:
             raise HTTPException(status_code=400, detail="Document not found")
         return updated_doc
@@ -77,7 +63,7 @@ async def rename_document(doc_id: UUID, request: DocumentRenameRequest, db: Asyn
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/batch")
-async def delete_documents(doc_ids: List[UUID], db: AsyncSession = Depends(get_async_session)):
+async def delete_documents(doc_ids: List[UUID],user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):
     """
     Deletes multiple documents and their associated vector chunks from the system.
 
@@ -89,7 +75,23 @@ async def delete_documents(doc_ids: List[UUID], db: AsyncSession = Depends(get_a
         dict: A status dictionary indicating the success of the batch deletion.
     """
     try:
-        success = await DocumentService.delete_files(db, doc_ids)
+        success = await DocumentService.delete_files(db,user_id, doc_ids)
         return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/", response_model=List[DocumentResponse])
+async def get_documents(user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):
+    """
+    Retrieves a list of all uploaded documents and their metadata.
+
+    Args:
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        List[DocumentResponse]: A list of document metadata objects.
+    """
+    try:
+        return await DocumentService.fetch_documents(user_id,db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

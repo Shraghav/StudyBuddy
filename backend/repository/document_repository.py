@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 class DocumentRepository:
     
     @staticmethod
-    async def create_document(db: AsyncSession, name: str, size: int, file_url: str) -> Document:
+    async def create_document(db: AsyncSession,user_id:UUID, name: str, size: int, file_url: str) -> Document:
         """
         Creates and persists a new Document record with binary content.
 
@@ -27,7 +27,7 @@ class DocumentRepository:
             Exception: If the insertion fails, triggering a session rollback.
         """
         try:
-            new_doc = Document(name=name,size=size, file_url=file_url)
+            new_doc = Document(name=name,user_id=user_id,size=size, file_url=file_url)
             db.add(new_doc)
             await db.commit()
             await db.refresh(new_doc)
@@ -38,7 +38,7 @@ class DocumentRepository:
             raise e
 
     @staticmethod
-    async def get_all_documents(db: AsyncSession):
+    async def get_all_documents(user_id:UUID,db: AsyncSession):
         """
         Retrieves all documents from the database ordered by upload date.
 
@@ -52,14 +52,14 @@ class DocumentRepository:
             Exception: If the select query fails.
         """
         try:
-            result = await db.execute(select(Document).order_by(Document.upload_date.desc()))
+            result = await db.execute(select(Document).where(Document.user_id == user_id).order_by(Document.upload_date.desc()))
             return result.scalars().all()
         except Exception as e:
             print(f"Error in repo get_all_documents: {e}")
             raise e
 
     @staticmethod
-    async def update_document_name(db: AsyncSession, doc_id: UUID, new_name: str):
+    async def update_document_name(db: AsyncSession,user_id:UUID, doc_id: UUID, new_name: str):
         """
         Updates the filename of an existing document record.
 
@@ -75,7 +75,7 @@ class DocumentRepository:
             Exception: If the update fails, triggering a session rollback.
         """
         try:
-            result = await db.execute(select(Document).where(Document.id == doc_id))
+            result = await db.execute(select(Document).where(Document.id == doc_id, Document.user_id == user_id))
             doc = result.scalar_one_or_none()
             if doc:
                 doc.name = new_name
@@ -88,7 +88,7 @@ class DocumentRepository:
             raise e
 
     @staticmethod
-    async def delete_documents(db: AsyncSession, doc_ids: list[UUID]):
+    async def delete_documents(db: AsyncSession,user_id:UUID, doc_ids: list[UUID]):
         """
         Deletes a batch of documents based on a list of unique identifiers.
 
@@ -109,7 +109,7 @@ class DocumentRepository:
         try:
             # 1. Fetch the URLs before deleting the records
             result = await db.execute(
-                select(Document.file_url).where(Document.id.in_(doc_ids))
+                select(Document.file_url).where(Document.id.in_(doc_ids), Document.user_id == user_id)
             )
             file_urls = result.scalars().all()
     

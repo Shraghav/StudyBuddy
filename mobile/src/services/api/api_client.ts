@@ -1,17 +1,33 @@
 import axios from "axios";
-
-
+import * as SecureStore from "expo-secure-store";
+import { jwtDecode } from "jwt-decode";
+import { useDispatch } from "react-redux";
+import { logout } from "../../store/slices/AuthSlice";
+import { isTokenValid, performLogout } from "../../utils/auth";
 export const apiClient = axios.create({
-  baseURL: "https://studybuddy-backend-qq6l.onrender.com/",
-  // baseURL: "http://192.168.31.74:8000",
+  // baseURL: "https://studybuddy-backend-qq6l.onrender.com/",
+  baseURL: "http://192.168.31.74:8000",
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 60000,
+  timeout: 40000,
+});
+
+apiClient.interceptors.request.use(async (config) => {
+  const token = await SecureStore.getItemAsync("auth_token");
+  if (token) {
+    if (!isTokenValid(token)) {
+      await performLogout();
+      return Promise.reject(new Error("Session expired"));
+    }
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Returning the config to interceptors
+  return config;
 });
 
 apiClient.interceptors.response.use(
-  (response) => response, 
+  (response) => response,
   async (error) => {
     const config = error.config;
     const MAX_RETRIES = 3;

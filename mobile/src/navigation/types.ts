@@ -24,19 +24,20 @@ export type QuizDrawerParamList = {
   QuizStack: NavigatorScreenParams<QuizStackParamList>;
 };
 
-
 export type BottomTabParamList = {
   Upload: undefined;
   Chat: NavigatorScreenParams<ChatDrawerParamList>;
   Quiz: NavigatorScreenParams<QuizDrawerParamList>;
+  Profile: undefined;
 };
+export type LoginScreenNavigationProp =
+  NativeStackNavigationProp<AuthStackParamList>;
 
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   MainApp: NavigatorScreenParams<BottomTabParamList>;
 };
 
-export type AuthNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 export type QuizScreenNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<QuizStackParamList>,
   DrawerNavigationProp<QuizDrawerParamList>

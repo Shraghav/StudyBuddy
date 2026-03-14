@@ -16,3 +16,6 @@ langchain-groq
 pytest
 httpx
 python-multipart
+pwdlib
+pwdlib[argon2]
+PyJWT

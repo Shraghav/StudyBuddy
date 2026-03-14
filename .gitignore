@@ -1,14 +1,48 @@
-backend/__pycache__/main.cpython-314.pyc
-backend/controller/__pycache__/chat_controller.cpython-314.pyc
-backend/controller/__pycache__/document_controller.cpython-314.pyc
-backend/dto/__pycache__/chat_dto.cpython-314.pyc
-backend/dto/__pycache__/document_dto.cpython-314.pyc
-backend/repository/__pycache__/chat_repository.cpython-314.pyc
-backend/repository/__pycache__/database.cpython-314.pyc
-backend/repository/__pycache__/document_repository.cpython-314.pyc
-backend/repository/__pycache__/models.cpython-314.pyc
-backend/services/__pycache__/chat_service.cpython-314.pyc
-backend/services/__pycache__/document_service.cpython-314.pyc
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+<<<<<<< HEAD
+__pycache__/
+=======
+>>>>>>> 94aa813d37f63da4b2a266c865a83e6b96315bf2
 .env
-keys- android.json
 keys- web.json
+keys- android.json

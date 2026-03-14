@@ -2,7 +2,8 @@ import { useNavigation } from "@react-navigation/native";
 import { useState } from "react";
 import { StyleSheet } from "react-native";
 
-import { AuthNavigationProp } from "../../navigation/types";
+import { LoginScreenNavigationProp } from "../../navigation/types";
+import { supabase } from "../../services/db/superbase";
 
 export const SignupVM = () => {
   const [fullName, setFullName] = useState("");
@@ -10,8 +11,11 @@ export const SignupVM = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const navigation = useNavigation<AuthNavigationProp>();
+  const navigation = useNavigation<LoginScreenNavigationProp>();
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#F0F4F8" },
@@ -39,9 +43,15 @@ export const SignupVM = () => {
   });
   const handleSignup = async () => {
     try {
-      if (password !== confirmPassword) {
-        alert("Passwords don't match!");
+      if (!validateInputs()) {
         return;
+      }
+      const { error, data } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+      });
+      if (error) {
+        setError(error.message);
       }
       navigation.navigate("SignIn");
       setIsLoading(true);
@@ -51,15 +61,42 @@ export const SignupVM = () => {
       setIsLoading(false);
     }
   };
+  const validateInputs = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return false;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return false;
+    }
+
+    return true;
+  };
   const handleLogin = () => {
     try {
-      navigation.goBack()
+      navigation.goBack();
     } catch (error) {
-      console.error("Error occured in handleLogin")
+      console.error("Error occured in handleLogin");
     }
-  }
-
+  };
+  const passwordIconVisible = (visible: boolean) => {
+    try {
+      setPasswordVisible(!visible);
+    } catch (error) {
+      console.error("Error occured in password Icon:", error);
+    }
+  };
+  const confirmPasswordIconVisible = (visible: boolean) => {
+    try {
+      setConfirmPasswordVisible(!visible);
+    } catch (error) {
+      console.error("Error occured in confirm password Icon:", error);
+    }
+  };
   return {
     fullName,
     setFullName,
@@ -73,5 +110,9 @@ export const SignupVM = () => {
     handleSignup,
     handleLogin,
     styles,
+    passwordIconVisible,
+    passwordVisible,
+    confirmPasswordVisible,
+    confirmPasswordIconVisible
   };
 };
