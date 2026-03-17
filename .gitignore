@@ -46,3 +46,17 @@ __pycache__/
 .env
 keys- web.json
 keys- android.json
+mobile/src/navigation/RootNavigator.tsx
+backend/__pycache__/main.cpython-310.pyc
+backend/controller/__pycache__/chat_controller.cpython-310.pyc
+backend/controller/__pycache__/document_controller.cpython-310.pyc
+backend/dto/__pycache__/chat_dto.cpython-310.pyc
+backend/dto/__pycache__/document_dto.cpython-310.pyc
+backend/repository/__pycache__/chat_repository.cpython-310.pyc
+backend/repository/__pycache__/database.cpython-310.pyc
+backend/repository/__pycache__/document_repository.cpython-310.pyc
+backend/repository/__pycache__/models.cpython-310.pyc
+backend/services/__pycache__/chat_service.cpython-310.pyc
+backend/services/__pycache__/document_service.cpython-310.pyc
+backend/utils/__pycache__/jwt_utils.cpython-310.pyc
+backend/utils/__pycache__/supabase_utils.cpython-310.pyc

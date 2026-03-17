@@ -3,8 +3,8 @@ import { FlatList, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
-import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { ActiveQuizVM } from './ActiveQuizVM';
+import { TextInput } from 'react-native-paper';
 
 export const ActiveQuizScreen = () => {
     const vm = ActiveQuizVM();
@@ -30,11 +30,14 @@ export const ActiveQuizScreen = () => {
                         </TouchableOpacity>
                     ))
                 ) : (
-                    <CustomInput
+                    <TextInput
+                        mode="outlined"
                         label="Your Answer"
                         value={userAnswer || ''}
                         onChangeText={(val) => vm.answerQuestionAI(item.id, val)}
                         multiline
+                        outlineColor="#C0C0C0"
+                        activeOutlineColor="#7393B3"
                     />
                 )}
             </View>

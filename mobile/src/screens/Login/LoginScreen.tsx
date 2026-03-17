@@ -3,15 +3,12 @@ import {
     KeyboardAvoidingView, Platform,
     Text,
     TouchableOpacity,
-    View,
-    Image
+    View
 } from 'react-native';
 
+import { Button, TextInput } from 'react-native-paper';
 import { CustomButton } from '../../components/CustomButton/CustomButton';
-import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { LoginScreenVM } from './LoginScreenVM';
-import { Images } from '../../utils/Images';
-
 
 const LoginScreen = () => {
     const vm = LoginScreenVM();
@@ -31,27 +28,36 @@ const LoginScreen = () => {
 
                 {/* Form Section */}
                 <View style={styles.form}>
-                    <CustomInput
+                    <TextInput
+                        mode="outlined"
                         label="Email Address"
                         placeholder="peter@example.com"
                         value={vm.email}
                         onChangeText={vm.setEmail}
                         autoCapitalize="none"
                         keyboardType="email-address"
+                        outlineColor='#C0C0C0'
+                        activeOutlineColor='#7393B3'
+                        style={{ marginBottom: 15 }}
                     />
-                    <View>
-                        <CustomInput
-                            label="Password"
-                            value={vm.password}
-                            onChangeText={vm.setPassword}
-                            secureTextEntry={!vm.passwordVisible}
-                        />
-                        <TouchableOpacity onPress={() => vm.passwordIconVisible(vm.passwordVisible)} style={{ position: "absolute", right:10 }}>
-                            <Image source={vm.passwordVisible ? Images.password_open : Images.password_close} style={{ height: 20, width: 20 }} />
-                        </TouchableOpacity>
-                    </View>
-                    {vm.error && <Text style={styles.errorText}>{vm.error}</Text>}
 
+                    <TextInput
+                        mode="outlined"
+                        label="Password"
+                        value={vm.password}
+                        onChangeText={vm.setPassword}
+                        secureTextEntry={!vm.passwordVisible}
+                        style={{ marginBottom: 15 }}
+                        outlineColor='#C0C0C0'
+                        activeOutlineColor='#7393B3'
+                        right={
+                            <TextInput.Icon
+                                icon={vm.passwordVisible ? "eye-off" : "eye"}
+                                onPress={() => vm.passwordIconVisible(vm.passwordVisible)}
+                            />
+                        }
+                    />
+                    {vm.error && <Text style={styles.errorText}>{vm.error}</Text>}
                     <CustomButton
                         title="Sign In"
                         onPress={vm.handleLogin}
@@ -62,16 +68,16 @@ const LoginScreen = () => {
                 </View>
 
                 {/* Footer */}
-                <TouchableOpacity onPress={vm.navigateToSignUp}>
+                <View>
                     <Text style={styles.footerText}>
-                        New to StudyBuddy? <Text style={styles.signUpLink}>Create Account</Text>
+                        New to StudyBuddy? <TouchableOpacity style={{ marginTop: 3 }}>
+                            <Text onPress={vm.navigateToSignUp} style={styles.signUpLink}>Create Account</Text>
+                        </TouchableOpacity>
                     </Text>
-                </TouchableOpacity>
+                </View>
             </View>
         </KeyboardAvoidingView>
     );
 };
-
-
 
 export default LoginScreen;

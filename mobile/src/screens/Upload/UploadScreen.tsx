@@ -3,11 +3,11 @@ import { ActivityIndicator, FlatList, Image, ListRenderItem, Modal, Text, Toucha
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
-import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { FileCard } from '../../components/FileCard/FileCard';
 import { FileDetail } from '../../store/slices/FileSlice';
 import { Images } from '../../utils/Images';
 import { UploadScreenVM } from './UploadScreenVM';
+import { TextInput } from 'react-native-paper';
 
 export const UploadScreen = () => {
   const vm = UploadScreenVM();
@@ -106,11 +106,14 @@ export const UploadScreen = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Study Material</Text>
 
-            <CustomInput
+            <TextInput
+              mode="outlined"
               label="Rename File"
               value={vm.docName}
               onChangeText={vm.handleDocName}
               placeholder="Enter new name"
+              outlineColor="#C0C0C0"
+              activeOutlineColor="#7393B3"
             />
 
             <CustomButton

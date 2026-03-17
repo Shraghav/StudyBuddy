@@ -4,11 +4,11 @@ import { ActivityIndicator, Image, Modal, Text, TouchableOpacity, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
-import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { ChatScreen } from '../../screens/Chat/ChatScreen';
 import { ChatSession } from '../../store/slices/ChatSlice';
 import { Images } from '../../utils/Images';
 import { ChatDrawerType, ChatDrawerVM } from './ChatDrawerVM';
+import { TextInput } from 'react-native-paper';
 
 const Drawer = createDrawerNavigator();
 
@@ -112,7 +112,14 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Edit Chat Session</Text>
-                        <CustomInput label="Rename Chat" value={vm.docName} onChangeText={vm.handleDocName} />
+                        <TextInput
+                            mode="outlined"
+                            label="Rename Chat"
+                            value={vm.docName}
+                            onChangeText={vm.handleDocName}
+                            outlineColor="#C0C0C0"
+                            activeOutlineColor="#7393B3"
+                        />
                         <CustomButton title="Select Chat" onPress={vm.enterSelectionMode} viewstyle={styles.selectChatContainer} />
                         <View style={styles.modalContainer}>
                             <CustomButton title="Cancel" onPress={vm.closeModal} viewstyle={styles.closeModalContainer} />

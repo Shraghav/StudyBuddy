@@ -4,7 +4,6 @@ import React from 'react';
 import { Image, Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
-import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { ActiveQuizScreen } from '../../screens/ActiveQuiz/ActiveQuizScreen';
 import { QuizSetupScreen } from '../../screens/QuizSetup/QuizSetupScreen';
 import { QuizResultScreen } from '../../screens/Result/ResultScreen';
@@ -12,6 +11,7 @@ import { Images } from '../../utils/Images';
 import { QuizDrawerParamList, QuizStackParamList } from '../types';
 import { QuizDrawerType, QuizDrawerVM } from './QuizDrawerVM';
 import { QuizSession } from '../../store/slices/QuizSlice';
+import { TextInput } from 'react-native-paper';
 
 
 const Drawer = createDrawerNavigator<QuizDrawerParamList>();
@@ -97,7 +97,14 @@ const CustomQuizDrawerContent = (props: CustomDrawerProps) => {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Quiz Options</Text>
-                        <CustomInput label="Rename Quiz" value={vm.quizName} onChangeText={vm.handleQuizName} />
+                        <TextInput
+                            mode="outlined"
+                            label="Rename Quiz"
+                            value={vm.quizName}
+                            onChangeText={vm.handleQuizName}
+                            outlineColor="#C0C0C0"
+                            activeOutlineColor="#7393B3"
+                        />
 
                         <CustomButton
                             title="Select this Quiz"

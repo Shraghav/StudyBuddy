@@ -87,10 +87,10 @@ export const ChatScreen = () => {
                     style={styles.attachedFileContainer}
                   >
                     <Text style={styles.docText}>
-                      {vm.attachedFile?.name ? (
+                      {vm.currentSession.attachedDocId ? (
                         <>
                           <Text style={styles.fileNameText}>
-                            📄 {vm.attachedFile.name}
+                            📄 {vm.currentSession.attachedDocName}
                           </Text>
                         </>
                       ) : (
