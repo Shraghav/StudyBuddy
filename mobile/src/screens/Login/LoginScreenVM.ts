@@ -7,32 +7,45 @@ import { useDispatch } from "react-redux";
 import { LoginScreenNavigationProp } from "../../navigation/types";
 import { supabase } from "../../services/db/superbase";
 import { loginSuccess } from "../../store/slices/AuthSlice";
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F0F4F8" },
-  innerContainer: { flex: 1, justifyContent: "center", padding: 30 },
-  header: { marginBottom: 50, alignItems: "center" },
-  logoText: { fontSize: 32, fontWeight: "bold", color: "#00796B" },
-  subtitle: { fontSize: 16, color: "#546E7A", marginTop: 10 },
-  form: {
-    backgroundColor: "#FFF",
-    padding: 25,
-    borderRadius: 20,
-    elevation: 5,
-  },
-  errorText: {
-    color: "#D32F2F",
-    fontSize: 14,
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  footerText: { textAlign: "center", marginTop: 30, color: "#546E7A" },
-  signUpLink: { color: "#00796B", fontWeight: "bold" },
-  loginButtonOverride: {
-    marginTop: 10,
-  },
-});
+import { useTheme } from "react-native-paper";
+import { AppTheme } from "../../utils/themes";
+const makeStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+    innerContainer: { flex: 1, justifyContent: "center", padding: 30 },
+    header: { marginBottom: 50, alignItems: "center" },
+    logoText: { fontSize: 32, fontWeight: "bold", color: theme.colors.primary },
+    subtitle: {
+      fontSize: 16,
+      color: theme.colors.onSurfaceVariant,
+      marginTop: 10,
+    },
+    form: {
+      backgroundColor: theme.colors.surface,
+      padding: 25,
+      borderRadius: 20,
+      elevation: 5,
+    },
+    errorText: {
+      color: theme.colors.error,
+      fontSize: 14,
+      marginBottom: 15,
+      textAlign: "center",
+    },
+    footerText: {
+      textAlign: "center",
+      marginTop: 30,
+      color: theme.colors.onSurfaceVariant,
+    },
+    signUpLink: { color: theme.colors.primary, fontWeight: "bold" },
+    loginButtonOverride: {
+      marginTop: 10,
+    },
+  });
 export const LoginScreenVM = () => {
   // Hooks
+  const theme = useTheme<AppTheme>();
+  const styles = makeStyles(theme);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);

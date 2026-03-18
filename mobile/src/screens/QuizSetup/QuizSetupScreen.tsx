@@ -2,9 +2,9 @@ import React from 'react';
 import { FlatList, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomButton } from '../../components/CustomButton/CustomButton';
-import { CustomInput } from '../../components/CustomInput/CustomInput';
 import DrawerMenu from '../../components/Drawer/Drawer';
 import { QuizSetupVM } from './QuizSetupVM';
+import { TextInput } from 'react-native-paper';
 
 export const QuizSetupScreen = () => {
   const vm = QuizSetupVM();
@@ -45,7 +45,7 @@ export const QuizSetupScreen = () => {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <DrawerMenu />
-        <Text style={styles.headerTitle}>{ vm.currentSession.title}</Text>
+        <Text style={styles.headerTitle}>{vm.currentSession.title}</Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -56,11 +56,13 @@ export const QuizSetupScreen = () => {
           </Text>
         </TouchableOpacity>
 
-        <CustomInput
+        <TextInput
           label="Number of Questions (Max 25)"
           keyboardType="numeric"
           value={setupParams.numQuestions}
           onChangeText={(val) => vm.updateSetup({ numQuestions: val })}
+          outlineColor='#C0C0C0'
+          activeOutlineColor='#7393B3'
         />
 
         <InlineSelector
@@ -77,13 +79,16 @@ export const QuizSetupScreen = () => {
           onSelect={(val: any) => vm.updateSetup({ format: val })}
         />
 
-        <CustomInput
+        <TextInput
+          mode="outlined"
           label="Custom Instructions for AI"
           placeholder="E.g., Focus mainly on chapter 3 formulas..."
           value={setupParams.customPrompt}
           onChangeText={(val) => vm.updateSetup({ customPrompt: val })}
           multiline
-          inputStyle={{ height: 80 }}
+          style={{ height: 80 }} // Changed from inputStyle to style
+          outlineColor="#C0C0C0"
+          activeOutlineColor="#7393B3"
         />
 
         <CustomButton

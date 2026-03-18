@@ -8,14 +8,18 @@ import { ChatDrawer } from './Drawer/ChatDrawer';
 import { QuizDrawer } from './Drawer/QuizDrawer';
 import { BottomTabParamList } from './types';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
+import { useTheme } from 'react-native-paper';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 export const BottomTabs = () => {
+    const theme = useTheme();
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
-                tabBarActiveTintColor: '#6200EE',
-                tabBarInactiveTintColor: '#9E9E9E',
+                tabBarStyle: {
+                    backgroundColor: theme.colors.surface,
+                    borderTopColor: theme.colors.outlineVariant
+                },
                 headerShown: false,
                 tabBarIcon: ({ color, size }) => {
                     let iconSource;
@@ -46,7 +50,7 @@ export const BottomTabs = () => {
             <Tab.Screen name="Upload" component={UploadScreen} />
             <Tab.Screen name="Chat" component={ChatDrawer} />
             <Tab.Screen name="Quiz" component={QuizDrawer} />
-            <Tab.Screen name ="Profile" component={ProfileScreen}/>
+            <Tab.Screen name="Profile" component={ProfileScreen} />
         </Tab.Navigator>
     );
 };

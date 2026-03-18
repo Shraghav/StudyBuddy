@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
 import { ActivityIndicator, FlatList, Image, ListRenderItem, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TextInput } from 'react-native-paper';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
-import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { FileCard } from '../../components/FileCard/FileCard';
 import { FileDetail } from '../../store/slices/FileSlice';
 import { Images } from '../../utils/Images';
@@ -41,14 +41,20 @@ export const UploadScreen = () => {
       <View style={styles.content}>
         {!vm.isSelectionMode && (
           vm.isUploading ? (
-            <View style={[styles.uploadBtn, { padding: 15, backgroundColor: "#E0F2F1", borderRadius: 10, alignItems: "center" }]}>
-              <ActivityIndicator size="small" color="#00796B" />
-              <Text style={{ marginTop: 8, color: "#00796B", fontWeight: "bold" }}>
+            <View style={styles.uploadBtn}>
+              <ActivityIndicator size="small" color={vm.theme.colors.primary} />
+              <Text style={{ marginTop: 8, color: vm.theme.colors.primary, fontWeight: "bold" }}>
                 Analyzing & Embedding PDF...
               </Text>
             </View>
           ) : (
-            <CustomButton title={vm.isCooldown ? "Wait for a second..." : "Upload PDF"} onPress={vm.pickDocuments} viewstyle={vm.uploadBtnStyle} disabled={vm.isCooldown} textStyle={vm.uploadBtnTxtStyle} />
+            <CustomButton title={vm.isCooldown ? "Just a moment....." : "Upload PDF"} onPress={vm.pickDocuments}
+              textStyle={{
+                fontSize: 16,
+                fontWeight: "600",
+                color: vm.theme.colors.primary
+              }}
+              viewstyle={styles.uploadBtn} disabled={vm.isCooldown} />
           )
         )}
 
@@ -71,19 +77,27 @@ export const UploadScreen = () => {
             )}
             {vm.isDeleteLoading && (
               <View style={styles.deleteloading}>
-                <ActivityIndicator animating={true} size="small" color="#00796B" />
+                <ActivityIndicator animating={true} size="small" color={vm.theme.colors.primary} />
               </View>
             )}
           </View>
 
-          {vm.isLoadingInitial ? (
-            // Fetching data
+          {vm.error ? (
             <View style={styles.initialLoadingContainer}>
-              <ActivityIndicator animating={true} size="large" color="#00796B" />
-              <Text style={[styles.emptyText]}>Loading your uploaded documents...</Text>
+              <Text style={[styles.emptyText, { color: vm.theme.colors.error }]}>
+                {vm.error}
+              </Text>
+            </View>
+          ) : vm.isLoadingInitial ? (
+            <View style={styles.initialLoadingContainer}>
+              <ActivityIndicator
+                animating={true}
+                size="large"
+                color={vm.theme.colors.primary}
+              />
+              <Text style={styles.emptyText}>Loading your uploaded documents...</Text>
             </View>
           ) : (
-            // once loading is complete (even if empty)
             <FlatList
               data={vm.uploadedFiles}
               keyExtractor={keyExtractor}
@@ -91,7 +105,9 @@ export const UploadScreen = () => {
               ListEmptyComponent={
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyText}>No files uploaded yet.</Text>
-                  <Text style={styles.emptySubText}>Select multiple PDFs to see them here.</Text>
+                  <Text style={styles.emptySubText}>
+                    Select multiple PDFs to see them here.
+                  </Text>
                 </View>
               }
               contentContainerStyle={styles.flatListContent}
@@ -106,7 +122,8 @@ export const UploadScreen = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Study Material</Text>
 
-            <CustomInput
+            <TextInput
+              mode="outlined"
               label="Rename File"
               value={vm.docName}
               onChangeText={vm.handleDocName}

@@ -4,7 +4,53 @@ import { StyleSheet } from "react-native";
 
 import { LoginScreenNavigationProp } from "../../navigation/types";
 import { supabase } from "../../services/db/superbase";
+import { AppTheme } from "../../utils/themes";
+import { useTheme } from "react-native-paper";
 
+const makeStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    subContainer: {
+      padding: 25,
+      justifyContent: "center",
+      flexGrow: 1,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: "bold",
+      color: theme.colors.primary, // Using your custom primary color
+      textAlign: "center",
+    },
+    subtitle: {
+      fontSize: 16,
+      color: theme.colors.onSurfaceVariant,
+      textAlign: "center",
+      marginBottom: 30,
+    },
+    card: {
+      backgroundColor: theme.colors.surface,
+      padding: 20,
+      borderRadius: 20,
+      elevation: 4,
+      // Add shadow for iOS to match elevation
+      shadowColor: theme.colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    footer: {
+      textAlign: "center",
+      marginTop: 20,
+      color: theme.colors.onSurfaceVariant,
+    },
+    link: {
+      color: theme.colors.primary,
+      fontWeight: "bold",
+    },
+  });
 export const SignupVM = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -14,33 +60,10 @@ export const SignupVM = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const theme = useTheme<AppTheme>();
+  const styles = makeStyles(theme);
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
-  const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#F0F4F8" },
-    subContainer: { padding: 25, justifyContent: "center", flexGrow: 1 },
-    title: {
-      fontSize: 28,
-      fontWeight: "bold",
-      color: "#004D40",
-      textAlign: "center",
-    },
-    subtitle: {
-      fontSize: 16,
-      color: "#546E7A",
-      textAlign: "center",
-      marginBottom: 30,
-    },
-    card: {
-      backgroundColor: "#FFF",
-      padding: 20,
-      borderRadius: 20,
-      elevation: 4,
-    },
-    footer: { textAlign: "center", marginTop: 20, color: "#546E7A" },
-    link: { color: "#00796B", fontWeight: "bold" },
-  });
   const handleSignup = async () => {
     try {
       if (!validateInputs()) {
@@ -113,6 +136,7 @@ export const SignupVM = () => {
     passwordIconVisible,
     passwordVisible,
     confirmPasswordVisible,
-    confirmPasswordIconVisible
+    confirmPasswordIconVisible,
+    theme
   };
 };

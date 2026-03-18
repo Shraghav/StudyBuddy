@@ -1,16 +1,18 @@
-import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-
+import { NavigationContainer } from '@react-navigation/native';
 import { View } from 'react-native';
+import { PaperProvider } from 'react-native-paper';
+
 import { RootState } from '../store';
 import { loginSuccess } from '../store/slices/AuthSlice';
+import { isTokenValid, performLogout } from '../utils/auth';
+import { darkTheme, lightTheme } from '../utils/themes';
 import { AuthStack } from './AuthStackNavigator';
 import { BottomTabs } from './TabNavigator';
 import { RootStackParamList } from './types';
-import { isTokenValid, performLogout } from '../utils/auth';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -18,6 +20,9 @@ export function Root_Stack() {
     const dispatch = useDispatch();
     const [isHydrating, setIsHydrating] = useState(true);
     const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+
+    const isDark = useSelector((state: any) => state.theme.isDark);
+    const theme = isDark ? darkTheme : lightTheme
     useEffect(() => {
         const checkSession = async () => {
             try {
@@ -38,18 +43,19 @@ export function Root_Stack() {
 
     if (isHydrating) {
         return (
-            <View />
+            <View style={{ flex: 1, backgroundColor: theme.colors.background }} />
         );
     }
 
     return (
-        <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-                {
-                    isAuthenticated ? <Stack.Screen name='MainApp' component={BottomTabs} /> :
+        <PaperProvider theme={theme}>
+            <NavigationContainer theme={theme as any}>
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                    {isAuthenticated ? <Stack.Screen name='MainApp' component={BottomTabs} /> :
                         <Stack.Screen name='Auth' component={AuthStack} />
-                }
-            </Stack.Navigator>
-        </NavigationContainer>
+                    }
+                </Stack.Navigator>
+            </NavigationContainer>
+        </PaperProvider>
     );
 }

@@ -26,6 +26,7 @@ class Document(Base):
     name = Column(String, nullable=False)
     size = Column(Integer)
     upload_date = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    status = Column(String, default="Processing")
     file_url = Column(String, nullable=False)
     
     owner = relationship("User", back_populates="documents")

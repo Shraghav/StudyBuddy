@@ -6,6 +6,7 @@ import { StyleSheet } from "react-native";
 import "react-native-get-random-values";
 import { useDispatch, useSelector } from "react-redux";
 
+import { useTheme } from "react-native-paper";
 import { apiClient } from "../../services/api/api_client";
 import { supabase } from "../../services/db/superbase";
 import { RootState } from "../../store";
@@ -16,71 +17,104 @@ import {
   setFiles,
   updateFileName,
 } from "../../store/slices/FileSlice";
+import { AppTheme } from "../../utils/themes";
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#ffffff" },
-  header: { padding: 30, backgroundColor: "#f0f0f0", borderRadius: 30 },
-  title: { fontSize: 24, fontWeight: "bold", color: "#01212b" },
-  subtitle: { fontSize: 14, color: "#546E7A", marginTop: 5 },
-  content: { flex: 1, paddingHorizontal: 20 },
-  uploadBtn: { marginVertical: 20 },
-  listContainer: { flex: 1 },
-  listHeader: { fontSize: 18, fontWeight: "700", color: "#263238" },
-  emptyState: { alignItems: "center", marginTop: 50 },
-  emptyText: { fontSize: 16, fontWeight: "600", color: "#90A4AE" },
-  emptySubText: { fontSize: 14, color: "#B0BEC5", marginTop: 5 },
-  flatListContent: { paddingBottom: 20 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 25,
-    elevation: 10,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#01212b",
-  },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  cancelBtn: { flex: 0.45, backgroundColor: "#90A4AE" },
-  saveBtn: { flex: 0.45 },
-  rowHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: 15,
-  },
-  actionIcons: { flexDirection: "row", alignItems: "center" },
-  iconBtn: { marginLeft: 20 },
-  selectedCard: {
-    borderColor: "#ff1616",
-    borderWidth: 2,
-    backgroundColor: "#efc2c2",
-  },
-  unselectedCard: {
-    borderColor: "#00796B",
-    borderWidth: 2,
-    backgroundColor: "#E0F2F1",
-  },
-  selectBtn: { backgroundColor: "#263238", marginBottom: 20 },
-  iconDimensions: { height: 20, width: 20 },
-  initialLoadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deleteloading: { position: "absolute", right: 65 },
+export const makeStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+    header: {
+      padding: 30,
+      backgroundColor: theme.colors.background,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      color: theme.colors.onSurfaceVariant,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+      marginTop: 5,
+    },
+    content: { flex: 1, paddingHorizontal: 20 },
+    uploadBtn: {
+      padding: 15,
+      backgroundColor: theme.colors.primaryContainer,
+      borderRadius: 10,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      
+    },
+    listContainer: { flex: 1 },
+    listHeader: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.colors.onSurface,
+    },
+    emptyState: { alignItems: "center", marginTop: 50 },
+    emptyText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: theme.colors.onSurfaceVariant,
+    },
+    emptySubText: {
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+      marginTop: 5,
+    },
+    flatListContent: { paddingBottom: 20 },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.backdrop,
+      justifyContent: "center",
+      padding: 25,
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      padding: 25,
+      elevation: 10,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: "bold",
+      marginBottom: 20,
+      color: theme.colors.onSurface,
+    },
+    modalActions: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 10,
+    },
+    cancelBtn: { flex: 0.45 },
+    saveBtn: { flex: 0.45 },
+    rowHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginVertical: 15,
+    },
+    actionIcons: { flexDirection: "row", alignItems: "center" },
+    iconBtn: { marginLeft: 20 },
+    selectedCard: {
+      borderColor: theme.colors.error,
+      borderWidth: 2,
+      backgroundColor: theme.colors.errorContainer,
+    },
+    unselectedCard: {
+      borderColor: theme.colors.primary,
+      borderWidth: 1,
+      backgroundColor: theme.colors.primaryContainer,
+    },
+    selectBtn: { backgroundColor: theme.colors.secondary },
+    iconDimensions: { height: 20, width: 20 },
+    initialLoadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    deleteloading: { position: "absolute", right: 65 },
 });
 
 export const UploadScreenVM = () => {
@@ -95,18 +129,12 @@ export const UploadScreenVM = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
-  const [isCooldown, setIsCooldown] = useState(false);
+  const [isCooldown, setIsCooldown] = useState(true);
+  const [error, setError] = useState<String>();
+  const theme = useTheme<AppTheme>();
+  const styles = makeStyles(theme);
   const COOLDOWN_TIME_MS = 7000;
-  const uploadBtnStyle = useMemo(
-    () =>
-      StyleSheet.flatten([styles.uploadBtn, { opacity: isCooldown ? 0.5 : 1 }]),
-    [isCooldown],
-  );
 
-  const uploadBtnTxtStyle = useMemo(
-    () => StyleSheet.flatten([{ color: isCooldown ? "#262f33" : "white" }]),
-    [isCooldown],
-  );
 
   // Fetch existing files from Postgres on load
   useEffect(() => {
@@ -115,9 +143,11 @@ export const UploadScreenVM = () => {
         const response = await apiClient.get(`/documents/`);
         dispatch(setFiles(response.data));
       } catch (error) {
+        setError("An unknown error occured, please try again");
         console.error("Error fetching files from API:", error);
       } finally {
         setIsLoadingInitial(false);
+        setIsCooldown(false);
       }
     };
     fetchFiles();
@@ -308,7 +338,7 @@ export const UploadScreenVM = () => {
     isLoadingInitial,
     isDeleteLoading,
     isCooldown,
-    uploadBtnStyle,
-    uploadBtnTxtStyle,
+    theme,
+    error
   };
 };

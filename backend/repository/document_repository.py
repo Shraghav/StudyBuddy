@@ -2,7 +2,7 @@ from typing import List
 from uuid import UUID
 
 from repository.models import Document, DocumentChunk
-from sqlalchemy import delete
+from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -37,6 +37,33 @@ class DocumentRepository:
             print(f"Error in repo create_document: {e}")
             raise e
 
+    @staticmethod
+    async def get_document_by_url(db: AsyncSession, user_id: UUID, file_url: str) -> Document:
+        """Checks if a document already exists to prevent duplicate uploads."""
+        try:
+            result = await db.execute(
+            select(Document).where(
+                Document.file_url == file_url,
+                Document.user_id == user_id
+            ).limit(1)
+        )
+            return result.scalar_one_or_none()
+        except Exception as e:
+            await db.rollback()
+            print(f"Error updating status: {e}")
+            
+    @staticmethod
+    async def update_document_status(db: AsyncSession, doc_id: UUID, new_status: str):
+        """Updates the document status to READY or FAILED."""
+        try:
+            await db.execute(
+                update(Document).where(Document.id == doc_id).values(status=new_status)
+            )
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            print(f"Error updating status: {e}")
+            
     @staticmethod
     async def get_all_documents(user_id:UUID,db: AsyncSession):
         """
@@ -121,6 +148,17 @@ class DocumentRepository:
         except Exception as e:
             await db.rollback()
             print(f"Error in repo delete_documents: {e}")
+            raise e
+    
+    @staticmethod
+    async def bulk_create_chunks(db: AsyncSession, chunks_data: list[DocumentChunk]):
+        """Inserts all chunks in a single database transaction."""
+        try:
+            db.add_all(chunks_data)
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            print(f"Error in bulk chunk insert: {e}")
             raise e
     
     @staticmethod

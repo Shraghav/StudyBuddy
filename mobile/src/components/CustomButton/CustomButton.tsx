@@ -1,5 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { useTheme } from 'react-native-paper';
+import { AppTheme } from '../../utils/themes';
 
 interface CustomButtonProps {
     title: string;
@@ -10,28 +12,43 @@ interface CustomButtonProps {
     textStyle?: TextStyle;
 }
 
-export const CustomButton = ({ title, onPress, loading, disabled, viewstyle, textStyle }: CustomButtonProps) => (
-    <TouchableOpacity
-        style={[styles.button, viewstyle, (disabled || loading) && styles.disabled]}
-        onPress={onPress}
-        disabled={disabled || loading}
-    >
-        {loading ? (
-            <ActivityIndicator color="#FFF" />
-        ) : (
-            <Text style={[styles.text, textStyle]}>{title}</Text>
-        )}
-    </TouchableOpacity>
-);
+export const CustomButton = ({ title, onPress, loading, disabled, viewstyle, textStyle }: CustomButtonProps) => {
+    const theme = useTheme<AppTheme>();
+    const styles = makeStyles(theme);
+    const isDisabled = disabled || loading;
 
-const styles = StyleSheet.create({
+    return (
+        <TouchableOpacity
+            style={[styles.button, viewstyle, isDisabled && styles.disabled]}
+            onPress={onPress}
+            disabled={isDisabled}
+        >
+            {loading ? (
+                <ActivityIndicator color={isDisabled ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary} />
+            ) : (
+                <Text style={[styles.text, textStyle, isDisabled && styles.disabledText]}>{title}</Text>
+            )}
+        </TouchableOpacity>
+    );
+};
+
+const makeStyles = (theme: AppTheme) => StyleSheet.create({
     button: {
-        backgroundColor: '#00796B',
+        backgroundColor: theme.colors.primary,
         padding: 18,
         borderRadius: 12,
         alignItems: 'center',
         marginTop: 10,
     },
-    disabled: { backgroundColor: '#B2DFDB' },
-    text: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+    disabled: {
+        backgroundColor: theme.colors.surfaceDisabled,
+    },
+    text: {
+        color: theme.colors.onPrimary,
+        fontSize: 18,
+        fontWeight: 'bold'
+    },
+    disabledText: {
+        color: theme.colors.onSurfaceDisabled,
+    }
 });

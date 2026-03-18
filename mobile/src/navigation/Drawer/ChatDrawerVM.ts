@@ -1,6 +1,6 @@
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { DrawerActions } from "@react-navigation/native";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -14,69 +14,99 @@ import {
   setSessionsLoading,
   switchSession,
 } from "../../store/slices/ChatSlice";
+import { AppTheme } from "../../utils/themes";
+import { useTheme } from "react-native-paper";
 
-const styles = StyleSheet.create({
-  drawerContainer: { flex: 1, backgroundColor: "#F0F4F8" },
-  drawerHeader: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderColor: "#E1E8ED",
-    marginBottom: 10,
-  },
-  logoText: { fontSize: 20, fontWeight: "bold", color: "#00796B" },
-  newChatContainer: { paddingHorizontal: 15, marginBottom: 20 },
-  newChatBtn: { backgroundColor: "#263238" },
-  rowHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    alignItems: "center",
-  },
-  historyLabel: { fontSize: 14, fontWeight: "700", color: "#546E7A" },
-  actionIcons: { flexDirection: "row", alignItems: "center" },
-  iconBtn: { marginLeft: 15 },
-  historyItem: {
-    padding: 15,
-    marginHorizontal: 10,
-    borderRadius: 10,
-    marginBottom: 5,
-    borderColor: "transparent",
-    borderWidth: 2,
-  },
-  historyItemActive: { backgroundColor: "#E0F2F1" },
-  selectedItem: {
-    borderWidth: 2,
-    borderColor: "#D32F2F",
-    backgroundColor: "#ffd4db",
-  },
-  historyText: { fontSize: 16, color: "#263238" },
-  historyTextActive: { fontWeight: "bold", color: "#004D40" },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContent: { backgroundColor: "#fff", borderRadius: 20, padding: 25 },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#01212b",
-  },
-  selectChatContainer: { backgroundColor: "#263238", marginBottom: 15 },
-  closeModalContainer: { flex: 0.45, backgroundColor: "#90A4AE" },
-  saveModalContainer: { flex: 0.45 },
-  modalContainer: { flexDirection: "row", justifyContent: "space-between" },
-  chatDrawer: { width: "60%" },
-});
+const makeStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    drawerContainer: { backgroundColor: theme.colors.surface, flex:1 },
+    drawerHeader: {
+      padding: 20,
+      borderBottomWidth: 1,
+      borderColor: theme.colors.outlineVariant,
+      marginBottom: 10,
+    },
+    logoText: { fontSize: 20, fontWeight: "bold", color: theme.colors.primary },
+    newChatContainer: { paddingHorizontal: 15, marginBottom: 20 },
+    newChatBtn: { backgroundColor: theme.colors.primary },
+    rowHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      marginBottom: 10,
+      alignItems: "center",
+    },
+    historyLabel: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.colors.onSurfaceVariant,
+    },
+    actionIcons: { flexDirection: "row", alignItems: "center" },
+    iconBtn: { marginLeft: 15 },
+    historyItem: {
+      padding: 15,
+      marginHorizontal: 10,
+      marginBottom: 5,
+      borderColor: "transparent",
+    },
+    historyItemActive: {
+      borderWidth: 1,
+      borderBottomColor: theme.colors.outlineVariant,
+    },
+    selectedItem: {
+      borderWidth: 2,
+      borderColor: theme.colors.error,
+      backgroundColor: theme.colors.errorContainer,
+    },
+    historyText: { fontSize: 16, color: theme.colors.onSurface },
+    historyTextActive: {
+      fontWeight: "bold",
+      color: theme.colors.onPrimaryContainer,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.backdrop,
+      justifyContent: "center",
+      padding: 20,
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      padding: 25,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: "bold",
+      marginBottom: 20,
+      color: theme.colors.onSurface,
+    },
+    selectChatContainer: {
+      marginBottom: 15,
+      backgroundColor: theme.colors.secondary,
+    },
+    closeModalContainer: {
+      flex: 0.45,
+    },
+    saveModalContainer: { flex: 0.45 },
+    modalContainer: { flexDirection: "row", justifyContent: "space-between" },
+    chatDrawer: { width: "60%" },
+    actionBtn: { color: theme.colors.onSurface },
+    centeredState: {
+      flex:1,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingVertical: 40, // Adds some breathing room inside the drawer
+    },
+  });
 
 export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   // hooks
   const dispatch = useDispatch();
   const currentSessionId = useSelector(
     (state: RootState) => state.chat.currentSessionId,
+  );
+  const isSessionLoading = useSelector(
+    (state: RootState) => state.chat.isLoading,
   );
   const sessions = useSelector((state: RootState) => state.chat.sessions);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -85,6 +115,9 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [docName, setDocName] = useState("");
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+  const [error, setError] = useState<String>();
+  const theme = useTheme<AppTheme>();
+  const styles = makeStyles(theme);
   // To fetch all the chats
   useEffect(() => {
     fetchChatHistory();
@@ -101,8 +134,10 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
         dispatch(setSessions(response.data.sessions));
       }
     } catch (error) {
+      setError("Failed to Load Chat history");
       console.error("Failed to load chat history:", error);
     } finally {
+      setError("");
       dispatch(setSessionsLoading(false)); // Stop loader whether it succeeds or fails
     }
   }, [dispatch]);
@@ -174,9 +209,10 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   const deleteSelectedChats = useCallback(async () => {
     try {
       if (selectedIds.length === 0) return;
-      const payload = { session_ids: selectedIds };
       setIsDeleteLoading(true);
-      await apiClient.post(`/chat/sessions/bulk-delete`, payload);
+      await apiClient.delete(`/chat/sessions/bulk-delete`, {
+        data: selectedIds,
+      });
 
       dispatch(removeSessions(selectedIds));
       setIsSelectionMode(false);
@@ -213,11 +249,12 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       console.error("Error occured in chat drawer:", error);
     }
   }, [sessions.length, dispatch]);
-  const createNewChatAndCloseDrawer = useCallback(() => {
+  const createNewChatAndCloseDrawer = useCallback(async () => {
     try {
-      createNewChat();
+      await createNewChat();
       props.navigation.dispatch(DrawerActions.closeDrawer());
     } catch (error) {
+      setError("Cannot create a new chat");
       console.error("Error in CreateNewChatAndCloseDrawer:", error);
     }
   }, [createNewChat, props.navigation]);
@@ -253,6 +290,9 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
     styles,
     createNewChatAndCloseDrawer,
     isDeleteLoading,
+    theme,
+    error,
+    isSessionLoading,
   };
 };
 
