@@ -2,13 +2,14 @@ import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScroll
 import React, { memo, useCallback } from 'react';
 import { ActivityIndicator, Image, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView } from 'react-native-gesture-handler';
+import { TextInput } from 'react-native-paper';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { ChatScreen } from '../../screens/Chat/ChatScreen';
 import { ChatSession } from '../../store/slices/ChatSlice';
 import { Images } from '../../utils/Images';
 import { ChatDrawerType, ChatDrawerVM } from './ChatDrawerVM';
-import { TextInput } from 'react-native-paper';
 
 const Drawer = createDrawerNavigator();
 
@@ -62,13 +63,14 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
         <DrawerContentScrollView {...props} contentContainerStyle={[styles.drawerContainer, { paddingTop: insets.top }]}>
             {/* Header to attach pdf */}
             <View style={styles.drawerHeader}>
-                <Text style={styles.logoText}>📚 StudyBuddy</Text>
+                <Text style={styles.logoText}> StudyBuddy</Text>
             </View>
 
             {!vm.isSelectionMode && (
                 <View style={styles.newChatContainer}>
                     <CustomButton title="+ New Chat" onPress={vm.createNewChatAndCloseDrawer} viewstyle={styles.newChatBtn} />
                 </View>
+
             )}
 
             {/* List of documents attached */}
@@ -79,33 +81,53 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                 {vm.isSelectionMode && (
                     <View style={styles.actionIcons}>
                         <TouchableOpacity onPress={vm.deleteSelectedChats} style={styles.iconBtn}>
-                            <Image source={Images.delete} style={{ height: 20, width: 20 }} resizeMode='contain' />
+                            <Image tintColor={vm.theme.colors.onSurface} source={Images.delete} style={{ height: 20, width: 20 }} resizeMode='contain' />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={vm.cancelSelection} style={styles.iconBtn}>
-                            <Image source={Images.cancel} style={{ height: 25, width: 20 }} resizeMode='contain' />
+                            <Image tintColor={vm.theme.colors.onSurface} source={Images.cancel} style={{ height: 25, width: 20 }} resizeMode='contain' />
                         </TouchableOpacity>
                     </View>
                 )}
                 {vm.isDeleteLoading && (
                     <View style={{ position: "absolute", right: 83 }}>
-                        <ActivityIndicator animating={true} size="small" color="#00796B" />
+                        <ActivityIndicator animating={true} size="small" color={vm.theme.colors.primary} />
                     </View>
                 )}
             </View>
 
-            {/* Passing items */}
-            {vm.sessions.length > 0 && vm.sessions.map((session: ChatSession, index) => (
-                <SessionItem
-                    key={session.id || `temp-${index}`}
-                    session={session}
-                    isActive={session.id === vm.currentSessionId && !vm.isSelectionMode}
-                    isSelected={vm.selectedIds.includes(session.id)}
-                    isSelectionMode={vm.isSelectionMode}
-                    styles={styles}
-                    onPress={handleSessionPress}
-                    onLongPress={handleSessionLongPress}
-                />
-            ))}
+            {vm.error ? (
+                <View style={styles.centeredState}>
+                    <Text style={{ color: vm.theme.colors.error }}>{vm.error}</Text>
+                </View>
+            ) : vm.isSessionLoading ? (
+                <View style={styles.centeredState}>
+                    <Text style={{ marginBottom: 15, color: vm.theme.colors.onBackground }}>
+                        Don't Create Chats while loading
+                    </Text>
+                    <ActivityIndicator animating={true} size="small" color={vm.theme.colors.primary} />
+                </View>
+            ) : (
+                <ScrollView>
+                    {vm.sessions.length > 0 ? (
+                        vm.sessions.map((session: ChatSession, index) => (
+                            <SessionItem
+                                key={session.id || `temp-${index}`}
+                                session={session}
+                                isActive={session.id === vm.currentSessionId && !vm.isSelectionMode}
+                                isSelected={vm.selectedIds.includes(session.id)}
+                                isSelectionMode={vm.isSelectionMode}
+                                styles={styles}
+                                onPress={handleSessionPress}
+                                onLongPress={handleSessionLongPress}
+                            />
+                        ))
+                    ) : (
+                        <View style={styles.centeredState}>
+                            <Text style={{ color: vm.theme.colors.onSurfaceVariant }}>No sessions found.</Text>
+                        </View>
+                    )}
+                </ScrollView>
+            )}
 
             {/* Ways to rename, select and cancel in modal */}
             <Modal visible={vm.isModalVisible} transparent animationType="fade">
@@ -117,8 +139,7 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                             label="Rename Chat"
                             value={vm.docName}
                             onChangeText={vm.handleDocName}
-                            outlineColor="#C0C0C0"
-                            activeOutlineColor="#7393B3"
+                            style={{ color: vm.theme.colors.onSurface, backgroundColor: vm.theme.colors.surface }}
                         />
                         <CustomButton title="Select Chat" onPress={vm.enterSelectionMode} viewstyle={styles.selectChatContainer} />
                         <View style={styles.modalContainer}>

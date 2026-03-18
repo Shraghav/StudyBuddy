@@ -1,12 +1,13 @@
+from typing import List
 from uuid import UUID
 
-from utils.jwt_utils import get_current_user
 from dto.chat_dto import (BulkDeleteRequest, ChatRequest, SessionCreate,
                           SessionRenameRequest)
 from fastapi import APIRouter, Depends, HTTPException
 from repository.database import get_async_session
 from services.chat_service import ChatService
 from sqlalchemy.ext.asyncio import AsyncSession
+from utils.jwt_utils import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -110,9 +111,9 @@ async def create_new_session(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/sessions/bulk-delete")
+@router.delete("/sessions/bulk-delete")
 async def delete_chat_sessions(
-    request: BulkDeleteRequest, 
+    doc_ids:List[UUID], 
     user_id: UUID = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session)
 ):
@@ -127,7 +128,8 @@ async def delete_chat_sessions(
         dict: A dictionary containing the status and result of the deletion process.
     """
     try:   
-        result = await ChatService.remove_sessions(db, user_id, request.session_ids)
+        print("user id:", user_id)
+        result = await ChatService.remove_sessions(db, user_id,doc_ids )
         return {"status": "success", "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -10,9 +10,23 @@ import {
   renameQuiz,
   switchQuizSession,
 } from "../../store/slices/QuizSlice";
+import { AppTheme } from "../../utils/themes";
+import { useTheme } from "react-native-paper";
 
-export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
-  const styles = StyleSheet.create({
+const makeStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    drawerContainer: {  backgroundColor: theme.colors.surface },
+    drawerHeader: {
+      padding: 20,
+      borderBottomWidth: 1,
+      borderColor: theme.colors.outlineVariant,
+      marginBottom: 10,
+    },
+    logoText: {
+      fontSize: 20,
+      fontWeight: "bold",
+      color: theme.colors.primary,
+    },
     rowHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -22,33 +36,24 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
     },
     actionIcons: { flexDirection: "row", alignItems: "center" },
     newBtnContainer: { paddingHorizontal: 15, marginBottom: 20 },
+    newQuizBtn: { backgroundColor: theme.colors.primary },
     selectedItem: {
       borderWidth: 2,
-      borderColor: "#00796B",
-      backgroundColor: "#E0F2F1",
+      borderColor: theme.colors.error,
+      backgroundColor: theme.colors.errorContainer,
     },
     iconBtn: { marginLeft: 15 },
     statusSubtext: {
       fontSize: 11,
-      color: "#90A4AE",
+      color: theme.colors.onSurfaceVariant,
       marginTop: 4,
       marginLeft: 22,
     },
-    drawerContainer: { flex: 1, backgroundColor: "#F0F4F8" },
-    drawerHeader: {
-      padding: 20,
-      borderBottomWidth: 1,
-      borderColor: "#E1E8ED",
-      marginBottom: 10,
-    },
-    logoText: { fontSize: 20, fontWeight: "bold", color: "#00796B" },
-    newQuizContainer: { paddingHorizontal: 15, marginBottom: 20 },
-    newQuizBtn: { backgroundColor: "#263238" },
     historyLabel: {
       paddingHorizontal: 20,
       fontSize: 14,
       fontWeight: "700",
-      color: "#546E7A",
+      color: theme.colors.onSurfaceVariant,
       marginBottom: 10,
     },
     historyItem: {
@@ -57,34 +62,36 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
       borderRadius: 10,
       marginBottom: 5,
     },
-    historyItemActive: { backgroundColor: "#E0F2F1" },
-    historyText: { fontSize: 16, color: "#263238" },
-    historyTextActive: { fontWeight: "bold", color: "#004D40" },
-    statusText: {
-      fontSize: 12,
-      color: "#90A4AE",
-      marginTop: 4,
-      marginLeft: 22,
+    historyItemActive: { backgroundColor: theme.colors.primaryContainer },
+    historyText: { fontSize: 16, color: theme.colors.onSurface },
+    historyTextActive: {
+      fontWeight: "bold",
+      color: theme.colors.onPrimaryContainer,
     },
     modalOverlay: {
       flex: 1,
-      backgroundColor: "rgba(0,0,0,0.5)",
+      backgroundColor: theme.colors.backdrop,
       justifyContent: "center",
       padding: 20,
     },
-    modalContent: { backgroundColor: "#FFF", borderRadius: 20, padding: 25 },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      padding: 25,
+    },
     modalTitle: {
       fontSize: 18,
       fontWeight: "bold",
       marginBottom: 20,
-      color: "#01212b",
+      color: theme.colors.onSurface,
     },
-    selectBtn: { backgroundColor: "#263238", marginBottom: 15 },
+    selectBtn: { backgroundColor: theme.colors.secondary, marginBottom: 15 },
     modalActions: { flexDirection: "row", justifyContent: "space-between" },
-    cancelBtn: { flex: 0.45, backgroundColor: "#90A4AE" },
+    cancelBtn: { flex: 0.45, backgroundColor: theme.colors.surfaceVariant },
     saveBtn: { flex: 0.45 },
     deleteCancelIcon: { height: 25, width: 20 },
   });
+export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
   // Hooks
   const dispatch = useDispatch();
   const sessions = useSelector((state: RootState) => state.quiz.sessions);
@@ -100,6 +107,8 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  const theme = useTheme<AppTheme>();
+  const styles = makeStyles(theme);
   // Handling quiz and history
   const handleNewQuiz = () => {
     try {
@@ -178,7 +187,7 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
       setIsSelectionMode(false);
       setSelectedIds([]);
     } catch (error) {
-      console.error("Error occured in handleCancel:", error)
+      console.error("Error occured in handleCancel:", error);
     }
   };
   const handleQuizName = (text: string) => {
@@ -203,7 +212,7 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
       console.error("Error in handleQuizName:", error);
     }
   };
-  
+
   return {
     styles,
     isSelectionMode,

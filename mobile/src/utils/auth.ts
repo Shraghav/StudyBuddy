@@ -2,7 +2,6 @@ import * as SecureStore from "expo-secure-store";
 import { jwtDecode } from "jwt-decode";
 import { store } from "../store";
 import { logout } from "../store/slices/AuthSlice";
-import { useDispatch } from "react-redux";
 
 export const isTokenValid = (token: string | null): boolean => {
   if (!token) return false;

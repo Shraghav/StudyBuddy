@@ -10,7 +10,7 @@ const DrawerMenu = () => {
         <TouchableOpacity
             onPress={drawerVm.openSidebar}
         >
-            <Image style={{ height: 20, width: 20 }} resizeMode='contain' source={Images.drawer_menu} />
+            <Image tintColor={drawerVm.theme.colors.onBackground} style={{ height: 20, width: 20 }} resizeMode='contain' source={Images.drawer_menu} />
         </TouchableOpacity>
     )
 }

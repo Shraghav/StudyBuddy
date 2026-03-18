@@ -2,10 +2,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-
 import { NavigationContainer } from '@react-navigation/native';
 import { View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
+
 import { RootState } from '../store';
 import { loginSuccess } from '../store/slices/AuthSlice';
 import { isTokenValid, performLogout } from '../utils/auth';
@@ -43,7 +43,7 @@ export function Root_Stack() {
 
     if (isHydrating) {
         return (
-            <View />
+            <View style={{ flex: 1, backgroundColor: theme.colors.background }} />
         );
     }
 

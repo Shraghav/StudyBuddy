@@ -36,8 +36,6 @@ const LoginScreen = () => {
                         onChangeText={vm.setEmail}
                         autoCapitalize="none"
                         keyboardType="email-address"
-                        outlineColor='#C0C0C0'
-                        activeOutlineColor='#7393B3'
                         style={{ marginBottom: 15 }}
                     />
 
@@ -48,8 +46,6 @@ const LoginScreen = () => {
                         onChangeText={vm.setPassword}
                         secureTextEntry={!vm.passwordVisible}
                         style={{ marginBottom: 15 }}
-                        outlineColor='#C0C0C0'
-                        activeOutlineColor='#7393B3'
                         right={
                             <TextInput.Icon
                                 icon={vm.passwordVisible ? "eye-off" : "eye"}

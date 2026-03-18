@@ -12,6 +12,8 @@ import { QuizDrawerParamList, QuizStackParamList } from '../types';
 import { QuizDrawerType, QuizDrawerVM } from './QuizDrawerVM';
 import { QuizSession } from '../../store/slices/QuizSlice';
 import { TextInput } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView } from 'react-native-gesture-handler';
 
 
 const Drawer = createDrawerNavigator<QuizDrawerParamList>();
@@ -32,8 +34,8 @@ const QuizStack = () => (
 const CustomQuizDrawerContent = (props: CustomDrawerProps) => {
     const vm = props.vm
     const styles = vm.styles
+    const insets = useSafeAreaInsets();
     const SessionItem = ({ session, isActive, isSelected }: { session: QuizSession, isActive: boolean, isSelected: boolean }) => {
-
         return (
             <TouchableOpacity
                 key={session.id}
@@ -59,7 +61,7 @@ const CustomQuizDrawerContent = (props: CustomDrawerProps) => {
         )
     }
     return (
-        <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContainer}>
+        <DrawerContentScrollView  {...props} contentContainerStyle={[styles.drawerContainer, { paddingTop: insets.top }]}>
             {/* Upload pdf */}
             <View style={styles.drawerHeader}>
                 <Text style={styles.logoText}>📚 StudyBuddy Quiz</Text>
@@ -88,9 +90,11 @@ const CustomQuizDrawerContent = (props: CustomDrawerProps) => {
             </View>
 
             {/* Content */}
-            {vm.sessions.map((session: QuizSession) => {
-                return <SessionItem key={session.id} isActive={session.id == vm.currentSessionId && !vm.isSelectionMode} isSelected={vm.selectedIds.includes(session.id)} session={session} />
-            })}
+            <ScrollView style={{height:560}}>
+                {vm.sessions.map((session: QuizSession) => {
+                    return <SessionItem key={session.id} isActive={session.id == vm.currentSessionId && !vm.isSelectionMode} isSelected={vm.selectedIds.includes(session.id)} session={session} />
+                })}
+            </ScrollView>
 
             {/* Actula modal displays */}
             <Modal visible={vm.isModalVisible} transparent animationType="fade">
@@ -102,8 +106,6 @@ const CustomQuizDrawerContent = (props: CustomDrawerProps) => {
                             label="Rename Quiz"
                             value={vm.quizName}
                             onChangeText={vm.handleQuizName}
-                            outlineColor="#C0C0C0"
-                            activeOutlineColor="#7393B3"
                         />
 
                         <CustomButton
@@ -137,7 +139,7 @@ export const QuizDrawer = () => {
                 const styles = vm.styles
                 return <CustomQuizDrawerContent {...drawerProps} vm={vm} styles={styles} />
             }}
-            screenOptions={{ headerShown: false, drawerStyle: { width: '75%' } }}
+            screenOptions={{ headerShown: false, drawerStyle: { width: "60%" } }}
         >
             <Drawer.Screen name="QuizStack" component={QuizStack} />
         </Drawer.Navigator>

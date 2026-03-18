@@ -56,14 +56,15 @@ export const ChatScreen = () => {
     vm.flatListRef.current?.scrollToEnd({ animated: true });
   }, [vm.flatListRef]);
 
-  const keyExtractor = useCallback((item: any) => item.id, []);
-  
+  const keyExtractor = useCallback((item: any, index: number) => {
+    return item.id ? `${item.id}-${index}` : `msg-${index}`;
+  }, []);
+
   return (
     <View style={[styles.overallContainer, { paddingTop: insets.top - 10 }]}>
       <KeyboardAvoidingView
         style={styles.subContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <View style={styles.customHeader}>
           <DrawerMenu />
@@ -71,64 +72,56 @@ export const ChatScreen = () => {
         </View>
 
         {
-          vm.isSessionsLoading ? (
-            // 1. Show this while Supabase is fetching
-            <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color="#00796B" />
-              <Text style={[styles.emptyText, { marginTop: 15 }]}>Loading your study sessions...</Text>
-            </View>
-          ) :
-            !vm.currentSession ? <View style={[styles.emptyContainer]}>
-              <Text style={styles.emptyText}>Open the drawer to create a chat.</Text>
-            </View> :
-              <View style={styles.subContainer}>
-                <View style={styles.docBanner}>
-                  <View
-                    style={styles.attachedFileContainer}
-                  >
-                    <Text style={styles.docText}>
-                      {vm.currentSession.attachedDocId ? (
-                        <>
-                          <Text style={styles.fileNameText}>
-                            📄 {vm.currentSession.attachedDocName}
-                          </Text>
-                        </>
-                      ) : (
-                        "No document attached"
-                      )}
-                    </Text>
-                  </View>
-                  <CustomButton onPress={vm.openDocModal} viewstyle={styles.attachBtn} textStyle={styles.attachBtnText} title='+ Attach PDF' />
+          !vm.currentSession ? <View style={[styles.emptyContainer]}>
+            <Text style={styles.emptyText}> Open the drawer to create a chat.</Text>
+          </View> :
+            <View style={styles.subContainer}>
+              <View style={styles.docBanner}>
+                <View
+                  style={styles.attachedFileContainer}
+                >
+                  <Text style={styles.docText}>
+                    {vm.currentSession.attachedDocId ? (
+                      <>
+                        <Text style={styles.fileNameText}>
+                          📄 {vm.currentSession.attachedDocName}
+                        </Text>
+                      </>
+                    ) : (
+                      "No document attached"
+                    )}
+                  </Text>
                 </View>
-
-
-                <FlatList
-                  ref={vm.flatListRef}
-                  data={vm.currentSession?.messages}
-                  keyExtractor={keyExtractor}
-                  contentContainerStyle={styles.messageList}
-                  onContentSizeChange={handleContentSizeChange}
-                  renderItem={renderMessageItem}
-                  ListFooterComponent={
-                    renderMessageFooter
-                  }
-                />
-
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ask a question..."
-                    placeholderTextColor={"gray"}
-                    value={vm.inputText}
-                    onChangeText={vm.changeInputText}
-                    multiline
-                    editable={!vm.isChatLoading}
-                  />
-                  <TouchableOpacity onPress={vm.sendMessage} disabled={vm.isChatLoading}>
-                    <Image source={Images.send} style={{ width: 30, height: 30 }} resizeMode='contain' />
-                  </TouchableOpacity>
-                </View>
+                <CustomButton onPress={vm.openDocModal} viewstyle={styles.attachBtn} textStyle={styles.attachBtnText} title='+ Attach PDF' />
               </View>
+
+              <FlatList
+                ref={vm.flatListRef}
+                data={vm.currentSession?.messages}
+                keyExtractor={keyExtractor}
+                contentContainerStyle={styles.messageList}
+                onContentSizeChange={handleContentSizeChange}
+                renderItem={renderMessageItem}
+                ListFooterComponent={
+                  renderMessageFooter
+                }
+              />
+
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ask a question..."
+                  placeholderTextColor={"gray"}
+                  value={vm.inputText}
+                  onChangeText={vm.changeInputText}
+                  multiline
+                  editable={!vm.isChatLoading}
+                />
+                <TouchableOpacity onPress={vm.sendMessage} disabled={vm.isChatLoading}>
+                  <Image tintColor={vm.theme.colors.onBackground} source={Images.send} style={{ width: 30, height: 30 }} resizeMode='contain' />
+                </TouchableOpacity>
+              </View>
+            </View>
         }
       </KeyboardAvoidingView>
 

@@ -1,8 +1,5 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
-import { jwtDecode } from "jwt-decode";
-import { useDispatch } from "react-redux";
-import { logout } from "../../store/slices/AuthSlice";
 import { isTokenValid, performLogout } from "../../utils/auth";
 export const apiClient = axios.create({
   // baseURL: "https://studybuddy-backend-qq6l.onrender.com/",
@@ -10,7 +7,7 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 40000,
+  timeout: 60000,
 });
 
 apiClient.interceptors.request.use(async (config) => {

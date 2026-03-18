@@ -28,8 +28,6 @@ const SignupScreen = () => {
             value={vm.email}
             onChangeText={vm.setEmail}
             style={{ marginBottom: 15 }}
-            outlineColor='#C0C0C0'
-            activeOutlineColor='#7393B3'
           />
 
           <TextInput
@@ -45,8 +43,6 @@ const SignupScreen = () => {
                 onPress={() => vm.passwordIconVisible(vm.passwordVisible)}
               />
             }
-            outlineColor='#C0C0C0'
-            activeOutlineColor='#7393B3'
           />
 
           <TextInput
@@ -62,8 +58,6 @@ const SignupScreen = () => {
                 onPress={() => vm.confirmPasswordIconVisible(vm.confirmPasswordVisible)}
               />
             }
-            outlineColor='#C0C0C0'
-            activeOutlineColor='#7393B3'
           />
           <CustomButton
             title="Create Account"
