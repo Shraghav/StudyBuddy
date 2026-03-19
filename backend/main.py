@@ -29,7 +29,11 @@ app.add_middleware(
 )
 @app.get("/")
 def read_root():
-    return {"message": "StudyBuddy API is alive"}
+    return {
+        "status": "online",
+        "version": "v2.1-streaming-fix", 
+        "deployed_at": "2026-03-19 14:30" 
+    }
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
