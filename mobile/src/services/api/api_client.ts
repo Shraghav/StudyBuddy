@@ -12,6 +12,7 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(async (config) => {
   const token = await SecureStore.getItemAsync("auth_token");
+  console.log("Token:", token);
   if (token) {
     if (!isTokenValid(token)) {
       await performLogout();

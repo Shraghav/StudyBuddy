@@ -38,6 +38,7 @@ async def upload_document(background_tasks: BackgroundTasks,user_id: UUID = Depe
             raise HTTPException(status_code=400, detail="Only PDF files are allowed")
         return await DocumentService.upload_file(db,user_id, file, background_tasks)
     except Exception as e:
+        print("Exceptionn:", e  )
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/{doc_id}/rename", response_model=DocumentResponse)
