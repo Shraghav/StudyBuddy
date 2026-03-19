@@ -87,7 +87,7 @@ class DocumentService:
         """
         unique_filename = f"{uuid.uuid4()}_{file_name}"
         temp_file_location = f"{UPLOAD_DIR}/{unique_filename}"
-        async with () as bg_db: 
+        async with async_session_maker() as bg_db: 
             try:
                 async with httpx.AsyncClient() as client:
                     response = await client.get(file_url)

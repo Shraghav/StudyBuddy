@@ -44,7 +44,7 @@ class ChatService:
             
             chunks = await DocumentRepository.get_similar_chunks(db, document_id, question_vector, limit=5)
             context = "\n\n".join([c.text_content for c in chunks])
-
+            print(context)
             llm = ChatGroq(
                 model_name=os.getenv("MODAL_NAME"), 
                 temperature=0.3,
