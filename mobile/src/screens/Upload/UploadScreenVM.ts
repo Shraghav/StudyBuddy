@@ -281,6 +281,7 @@ export const UploadScreenVM = () => {
         multiple: false,
         copyToCacheDirectory: true,
       });
+      console.log("Pick up docs:", result.assets)
       if (!result.canceled) {
         setIsUploading(true);
         for (const asset of result.assets) {
@@ -312,6 +313,7 @@ export const UploadScreenVM = () => {
             file_url: publicUrl,
             size: asset.size,
           });
+          console.log("Doc after response from backend");
           const localFileWithServerId = {
             ...response.data,
             uri: asset.uri,
@@ -320,6 +322,7 @@ export const UploadScreenVM = () => {
           dispatch(addFiles([localFileWithServerId]));
         }
       }
+      console.log("Data after loading doc")
     } catch (err) {
       console.error("Error picking/uploading document:", err);
     } finally {

@@ -98,7 +98,7 @@ export const makeStyles = (theme: AppTheme) =>
       color: theme.colors.onSurfaceVariant,
       fontSize: 16,
       lineHeight: 22,
-      fontWeight: "bold",
+      // fontWeight: "bold",
     },
     inputContainer: {
       flexDirection: "row",
