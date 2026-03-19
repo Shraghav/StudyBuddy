@@ -9,6 +9,7 @@ import { SignupVM } from './SignupScreenVM';
 const SignupScreen = () => {
   const vm = SignupVM();
   const styles = vm.styles;
+  
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -51,7 +52,7 @@ const SignupScreen = () => {
             value={vm.confirmPassword}
             onChangeText={vm.setConfirmPassword}
             secureTextEntry={!vm.confirmPasswordVisible}
-            style={{ marginBottom: 15 }}
+            style={styles.outlineBtn}
             right={
               <TextInput.Icon
                 icon={vm.confirmPasswordVisible ? "eye-off" : "eye"}
@@ -59,6 +60,7 @@ const SignupScreen = () => {
               />
             }
           />
+          {vm.error && <Text style={styles.errorText}>{vm.error}</Text>}
           <CustomButton
             title="Create Account"
             onPress={vm.handleSignup}

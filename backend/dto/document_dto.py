@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 from uuid import UUID
 
@@ -11,9 +11,6 @@ class DocumentResponse(BaseModel):
     name: str
     size: Optional[int] = 0
     upload_date: datetime
-
-    class Config:
-        from_attributes = True
 
 class DocumentCreate(BaseModel):
     name: str

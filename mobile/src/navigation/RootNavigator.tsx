@@ -1,10 +1,9 @@
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SecureStore from 'expo-secure-store';
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { NavigationContainer } from '@react-navigation/native';
-import { View } from 'react-native';
+import { useEffect } from 'react';
 import { PaperProvider } from 'react-native-paper';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { RootState } from '../store';
 import { loginSuccess } from '../store/slices/AuthSlice';
@@ -18,11 +17,11 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function Root_Stack() {
     const dispatch = useDispatch();
-    const [isHydrating, setIsHydrating] = useState(true);
     const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
     const isDark = useSelector((state: any) => state.theme.isDark);
     const theme = isDark ? darkTheme : lightTheme
+
     useEffect(() => {
         const checkSession = async () => {
             try {
@@ -34,18 +33,10 @@ export function Root_Stack() {
                 }
             } catch (error) {
                 await performLogout();
-            } finally {
-                setIsHydrating(false);
             }
         };
         checkSession();
     }, [dispatch]);
-
-    if (isHydrating) {
-        return (
-            <View style={{ flex: 1, backgroundColor: theme.colors.background }} />
-        );
-    }
 
     return (
         <PaperProvider theme={theme}>

@@ -1,14 +1,14 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import { Image } from 'react-native';
+import { useTheme } from 'react-native-paper';
 
+import ProfileScreen from '../screens/Profile/ProfileScreen';
 import { UploadScreen } from '../screens/Upload/UploadScreen';
 import { Images } from '../utils/Images';
 import { ChatDrawer } from './Drawer/ChatDrawer';
 import { QuizDrawer } from './Drawer/QuizDrawer';
 import { BottomTabParamList } from './types';
-import ProfileScreen from '../screens/Profile/ProfileScreen';
-import { useTheme } from 'react-native-paper';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 export const BottomTabs = () => {

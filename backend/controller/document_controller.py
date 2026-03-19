@@ -22,7 +22,9 @@ async def upload_document(background_tasks: BackgroundTasks,user_id: UUID = Depe
     Uploads a PDF document and generates vector embeddings.
 
     Args:
-        file (UploadFile): The PDF file to be uploaded.
+        background_tasks (BackgroundTasks): Used to streamline the AI response by offloading heavy embedding task
+        user_id (UUID): The unique identifier of the user
+        file (DocumentCreate): The PDF data to be uploaded.
         db (AsyncSession): Database session dependency.
 
     Returns:
@@ -46,6 +48,7 @@ async def rename_document(doc_id: UUID, request: DocumentRenameRequest,user_id: 
     Args:
         doc_id (UUID): The unique identifier of the document to rename.
         request (DocumentRenameRequest): DTO containing the 'new_name' string.
+        user_id (UUID): The unique identifier of the user
         db (AsyncSession): Database session dependency.
 
     Returns:
@@ -69,6 +72,7 @@ async def delete_documents(doc_ids: List[UUID],user_id: UUID = Depends(get_curre
 
     Args:
         doc_ids (List[UUID]): A list of document identifiers to be removed.
+        user_id (UUID): The unique identifier of the user.
         db (AsyncSession): Database session dependency.
 
     Returns:
@@ -86,6 +90,7 @@ async def get_documents(user_id: UUID = Depends(get_current_user), db: AsyncSess
     Retrieves a list of all uploaded documents and their metadata.
 
     Args:
+        user_id (UUID): The unique identifier of the user.
         db (AsyncSession): Database session dependency.
 
     Returns:

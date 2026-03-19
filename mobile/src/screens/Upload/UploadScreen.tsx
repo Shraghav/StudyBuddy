@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { ActivityIndicator, FlatList, Image, ListRenderItem, Modal, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TextInput } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { FileCard } from '../../components/FileCard/FileCard';
@@ -13,6 +13,7 @@ export const UploadScreen = () => {
   const vm = UploadScreenVM();
   const styles = vm.styles
   const insets = useSafeAreaInsets();
+
   const renderItem: ListRenderItem<FileDetail> = useCallback(({ item }) => {
     const isSelected = vm.selectedIds.includes(item.id);
     return (
@@ -29,31 +30,26 @@ export const UploadScreen = () => {
   const keyExtractor = useCallback((item: any, index: number) => {
     return item.id ? String(item.id) : `temp-${index}`;
   }, []);
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom - 10 }]}>
-      {/* Header to upload pdf files */}
       <View style={styles.header}>
         <Text style={styles.title}>Your Study Material</Text>
         <Text style={styles.subtitle}>Upload PDFs to get started</Text>
       </View>
 
-      {/* To display the selected files */}
       <View style={styles.content}>
         {!vm.isSelectionMode && (
           vm.isUploading ? (
             <View style={styles.uploadBtn}>
               <ActivityIndicator size="small" color={vm.theme.colors.primary} />
-              <Text style={{ marginTop: 8, color: vm.theme.colors.primary, fontWeight: "bold" }}>
+              <Text style={styles.analyzingPdfText}>
                 Analyzing & Embedding PDF...
               </Text>
             </View>
           ) : (
             <CustomButton title={vm.isCooldown ? "Just a moment....." : "Upload PDF"} onPress={vm.pickDocuments}
-              textStyle={{
-                fontSize: 16,
-                fontWeight: "600",
-                color: vm.theme.colors.primary
-              }}
+              textStyle={styles.uploadDocText}
               viewstyle={styles.uploadBtn} disabled={vm.isCooldown} />
           )
         )}
@@ -64,7 +60,6 @@ export const UploadScreen = () => {
               {vm.isSelectionMode && vm.selectedIds.length > 0 ? `${vm.selectedIds.length} Selected` : "Recently Uploaded"}
             </Text>
 
-            {/* selected files to delete */}
             {vm.isSelectionMode && vm.selectedIds.length > 0 && (
               <View style={styles.actionIcons}>
                 <TouchableOpacity onPress={vm.deleteSelectedFiles} style={styles.iconBtn}>
@@ -84,7 +79,7 @@ export const UploadScreen = () => {
 
           {vm.error ? (
             <View style={styles.initialLoadingContainer}>
-              <Text style={[styles.emptyText, { color: vm.theme.colors.error }]}>
+              <Text style={styles.errorText}>
                 {vm.error}
               </Text>
             </View>
@@ -116,12 +111,10 @@ export const UploadScreen = () => {
         </View>
       </View>
 
-      {/* Modal to rename and select file */}
       <Modal visible={vm.isModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Study Material</Text>
-
             <TextInput
               mode="outlined"
               label="Rename File"
@@ -129,13 +122,11 @@ export const UploadScreen = () => {
               onChangeText={vm.handleDocName}
               placeholder="Enter new name"
             />
-
             <CustomButton
               title="Select this file"
               onPress={vm.enterSelectionMode}
               viewstyle={styles.selectBtn}
             />
-
             <View style={styles.modalActions}>
               <CustomButton
                 title="Cancel"

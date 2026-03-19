@@ -44,7 +44,6 @@ export const makeStyles = (theme: AppTheme) =>
       alignItems: "center",
       borderWidth: 1,
       borderColor: theme.colors.primary,
-      
     },
     listContainer: { flex: 1 },
     listHeader: {
@@ -57,6 +56,11 @@ export const makeStyles = (theme: AppTheme) =>
       fontSize: 16,
       fontWeight: "600",
       color: theme.colors.onSurfaceVariant,
+    },
+    errorText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: theme.colors.error,
     },
     emptySubText: {
       fontSize: 14,
@@ -115,7 +119,17 @@ export const makeStyles = (theme: AppTheme) =>
       alignItems: "center",
     },
     deleteloading: { position: "absolute", right: 65 },
-});
+    analyzingPdfText: {
+      marginTop: 8,
+      color: theme.colors.primary,
+      fontWeight: "bold",
+    },
+    uploadDocText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: theme.colors.primary,
+    },
+  });
 
 export const UploadScreenVM = () => {
   // hooks
@@ -134,7 +148,6 @@ export const UploadScreenVM = () => {
   const theme = useTheme<AppTheme>();
   const styles = makeStyles(theme);
   const COOLDOWN_TIME_MS = 7000;
-
 
   // Fetch existing files from Postgres on load
   useEffect(() => {
@@ -339,6 +352,6 @@ export const UploadScreenVM = () => {
     isDeleteLoading,
     isCooldown,
     theme,
-    error
+    error,
   };
 };

@@ -1,9 +1,9 @@
 import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView } from '@react-navigation/drawer';
 import React, { memo, useCallback } from 'react';
 import { ActivityIndicator, Image, Modal, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView } from 'react-native-gesture-handler';
 import { TextInput } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { ChatScreen } from '../../screens/Chat/ChatScreen';
@@ -45,7 +45,6 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
     const styles = vm.styles
     const insets = useSafeAreaInsets();
 
-    // Handlers for the SessionItem to avoid passing inline functions down
     const handleSessionPress = useCallback((id: string, isSelectionMode: boolean) => {
         if (isSelectionMode) {
             vm.toggleSelection(id);
@@ -61,19 +60,17 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
     }, [vm.openModal]);
     return (
         <DrawerContentScrollView {...props} contentContainerStyle={[styles.drawerContainer, { paddingTop: insets.top }]}>
-            {/* Header to attach pdf */}
+
             <View style={styles.drawerHeader}>
-                <Text style={styles.logoText}> StudyBuddy</Text>
+                <Text style={styles.logoText}>StudyBuddy</Text>
             </View>
 
             {!vm.isSelectionMode && (
                 <View style={styles.newChatContainer}>
-                    <CustomButton title="+ New Chat" onPress={vm.createNewChatAndCloseDrawer} viewstyle={styles.newChatBtn} />
+                    <CustomButton title="+ New Chat" onPress={vm.createNewChatAndCloseDrawer} viewstyle={styles.newChatBtn} loading={vm.createChatLoading} />
                 </View>
-
             )}
 
-            {/* List of documents attached */}
             <View style={styles.rowHeader}>
                 <Text style={styles.historyLabel}>
                     {vm.isSelectionMode ? `${vm.selectedIds.length} Selected` : "Previous Sessions"}
@@ -81,15 +78,15 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                 {vm.isSelectionMode && (
                     <View style={styles.actionIcons}>
                         <TouchableOpacity onPress={vm.deleteSelectedChats} style={styles.iconBtn}>
-                            <Image tintColor={vm.theme.colors.onSurface} source={Images.delete} style={{ height: 20, width: 20 }} resizeMode='contain' />
+                            <Image tintColor={vm.theme.colors.onSurface} source={Images.delete} style={styles.deleteIcon} resizeMode='contain' />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={vm.cancelSelection} style={styles.iconBtn}>
-                            <Image tintColor={vm.theme.colors.onSurface} source={Images.cancel} style={{ height: 25, width: 20 }} resizeMode='contain' />
+                            <Image tintColor={vm.theme.colors.onSurface} source={Images.cancel} style={styles.cancelIcon} resizeMode='contain' />
                         </TouchableOpacity>
                     </View>
                 )}
                 {vm.isDeleteLoading && (
-                    <View style={{ position: "absolute", right: 83 }}>
+                    <View style={styles.deleteLoader}>
                         <ActivityIndicator animating={true} size="small" color={vm.theme.colors.primary} />
                     </View>
                 )}
@@ -97,11 +94,11 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
 
             {vm.error ? (
                 <View style={styles.centeredState}>
-                    <Text style={{ color: vm.theme.colors.error }}>{vm.error}</Text>
+                    <Text style={styles.errorText}>{vm.error}</Text>
                 </View>
             ) : vm.isSessionLoading ? (
                 <View style={styles.centeredState}>
-                    <Text style={{ marginBottom: 15, color: vm.theme.colors.onBackground }}>
+                    <Text style={styles.dontCreateText}>
                         Don't Create Chats while loading
                     </Text>
                     <ActivityIndicator animating={true} size="small" color={vm.theme.colors.primary} />
@@ -123,13 +120,12 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                         ))
                     ) : (
                         <View style={styles.centeredState}>
-                            <Text style={{ color: vm.theme.colors.onSurfaceVariant }}>No sessions found.</Text>
+                            <Text style={styles.noSessionText}>No sessions found....</Text>
                         </View>
                     )}
                 </ScrollView>
             )}
 
-            {/* Ways to rename, select and cancel in modal */}
             <Modal visible={vm.isModalVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
@@ -139,12 +135,12 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                             label="Rename Chat"
                             value={vm.docName}
                             onChangeText={vm.handleDocName}
-                            style={{ color: vm.theme.colors.onSurface, backgroundColor: vm.theme.colors.surface }}
+                            style={styles.renameTextContent}
                         />
                         <CustomButton title="Select Chat" onPress={vm.enterSelectionMode} viewstyle={styles.selectChatContainer} />
                         <View style={styles.modalContainer}>
                             <CustomButton title="Cancel" onPress={vm.closeModal} viewstyle={styles.closeModalContainer} />
-                            <CustomButton title="Save Name" onPress={vm.confirmRename} viewstyle={styles.saveModalContainer} />
+                            <CustomButton title="Save Name" onPress={vm.confirmRename} viewstyle={styles.saveModalContainer} loading={vm.saveLoading} />
                         </View>
                     </View>
                 </View>
