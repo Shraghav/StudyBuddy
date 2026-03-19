@@ -1,12 +1,14 @@
+import json
 import os
 from typing import List
 from uuid import UUID
-
 from dotenv import load_dotenv
+from fastapi.responses import StreamingResponse
 load_dotenv()
 from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_groq import ChatGroq
+
 from repository.chat_repository import ChatRepository
 from repository.document_repository import DocumentRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,14 +18,14 @@ class ChatService:
     @staticmethod
     async def ask_question(db: AsyncSession, session_id: UUID, document_id: UUID, question: str):
         """
-        Executes a RAG (Retrieval-Augmented Generation) workflow to answer user questions.
+        Executes a RAG (Retrieval-Augmented Generation) workflow and streams the response.
 
         Steps:
         1. Persists the user's message to the database.
         2. Generates embeddings for the question using Google Gemini.
         3. Retrieves the top 5 most relevant document chunks from PostgreSQL.
-        4. Queries Llama-3 (via Groq) with the retrieved context.
-        5. Persists and returns the AI-generated answer.
+        4. Queries Llama-3 (via Groq) with streaming enabled.
+        5. Yields text chunks via SSE and persists the full answer to the DB upon completion.
 
         Args:
             db (AsyncSession): Database session dependency.
@@ -32,25 +34,22 @@ class ChatService:
             question (str): The user's query text.
 
         Returns:
-            dict: A dictionary containing the AI's generated answer.
+            StreamingResponse: A server-sent events stream of AI-generated text chunks.
         """
         try:
-            # Saving the user message in db
             await ChatRepository.save_message(db, session_id, "user", question)
 
-            # Creating embeddings for the question
             embeddings_model = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
             question_vector = embeddings_model.embed_query(question)
             
-            # Getting similar chunks by comparing it with the actual pdf embeddings that is in document repository
             chunks = await DocumentRepository.get_similar_chunks(db, document_id, question_vector, limit=5)
             context = "\n\n".join([c.text_content for c in chunks])
 
-            # Initializing the ChatGroq model and prompt
             llm = ChatGroq(
                 model_name=os.getenv("MODAL_NAME"), 
                 temperature=0.3,
-                groq_api_key=os.getenv("GROQ_API_KEY")
+                groq_api_key=os.getenv("GROQ_API_KEY"),
+                streaming=True
             )
             prompt = PromptTemplate.from_template(
             """You are StudyBuddy, an intelligent and helpful AI tutor. 
@@ -68,14 +67,28 @@ class ChatService:
             
             Helpful Answer:"""
         )
-            # Chaining them and asking questions
             chain = prompt | llm
-            response = await chain.ainvoke({"context": context, "question": question})
-            ai_answer = response.content
 
-            # Save AI Answer to DB
-            await ChatRepository.save_message(db, session_id, "ai", ai_answer)
-            return {"answer": ai_answer}
+            async def event_generator():
+                full_ai_answer = ""
+                try:
+                    async for chunk in chain.astream({"context": context, "question": question}):
+                        if chunk.content:
+                            text_chunk = chunk.content
+                            full_ai_answer += text_chunk
+                            safe_chunk = json.dumps(text_chunk)
+                            yield f"data: {safe_chunk}\n\n"
+                    
+                    await ChatRepository.save_message(db, session_id, "ai", full_ai_answer)                    
+                    yield "data: \"[DONE]\"\n\n"
+                    
+                except Exception as stream_error:
+                    print(f"Error in streaming AI text: {stream_error}")
+                    error_msg = json.dumps("\n[Error: Connection lost while generating response.]")
+                    yield f"data: {error_msg}\n\n"
+
+            return StreamingResponse(event_generator(), media_type="text/event-stream")
+
         except Exception as e:
             print(f"Error in ChatService.ask_question: {e}")
             raise e
@@ -86,7 +99,7 @@ class ChatService:
 
         Args:
             db (AsyncSession): Database session dependency.
-            user_id: The ID of the user creating the session (nullable).
+            user_id (UUID): The unique identifier of the user
             title (str): Initial display title for the session.
             document_id (UUID): The identifier of the document to be used for the session.
 
@@ -94,7 +107,6 @@ class ChatService:
             Session: The newly created session object.
         """
         try:
-            # Creating session
             session = await ChatRepository.create_session(db, user_id, title, document_id)
             return session
         except Exception as e:
@@ -107,6 +119,7 @@ class ChatService:
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user
             session_id (UUID): The identifier of the chat session to update.
             document_id (UUID): The identifier of the new document to link.
 
@@ -125,10 +138,10 @@ class ChatService:
        """
         Fetches all chat sessions and formats them for the frontend Redux state (ChatSlice.ts).
 
-        This method maps database models to the 'ChatSession' interface expected 
-        by the React Native app
+        Maps database models to the 'ChatSession' interface expected by ChatSlice.
 
         Args:
+            user_id (UUID): The unique identifier of the user
             db (AsyncSession): Database session dependency.
 
         Returns:
@@ -136,7 +149,6 @@ class ChatService:
         """
        try:
            sessions = await ChatRepository.get_all_sessions(user_id, db)
-           print("Sessions:", sessions)
            if(len(sessions)<0):
                return
            history = []
@@ -165,6 +177,7 @@ class ChatService:
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user.
             session_id (UUID): The identifier of the session to be renamed.
             new_title (str): The new title string.
 
@@ -185,6 +198,7 @@ class ChatService:
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user
             session_ids (List[UUID]): A list of session identifiers to remove.
 
         Returns:

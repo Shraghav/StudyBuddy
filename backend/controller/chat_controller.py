@@ -1,7 +1,7 @@
 from typing import List
 from uuid import UUID
 
-from dto.chat_dto import (BulkDeleteRequest, ChatRequest, SessionCreate,
+from dto.chat_dto import (ChatRequest, SessionCreate,
                           SessionRenameRequest)
 from fastapi import APIRouter, Depends, HTTPException
 from repository.database import get_async_session
@@ -31,8 +31,8 @@ async def chat_with_document(
         dict: A dictionary containing the status and the AI-generated content response.
     """
     try:
-        ans = await ChatService.ask_question(db, session_id, document_id, request.question)
-        return {"status":"success", "content":ans}
+        response = await ChatService.ask_question(db, session_id, document_id, request.question)
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
  
@@ -49,6 +49,7 @@ async def attach_document_to_session(
     Args:
         session_id (UUID): The unique identifier of the chat session.
         document_id (UUID): The unique identifier of the document to be attached.
+        user_id (UUID): The unique identifier of the user
         db (AsyncSession): Database session dependency.
 
     Returns:
@@ -73,6 +74,7 @@ async def rename_chat_session(
     Args:
         session_id (UUID): The unique identifier of the session to rename.
         request (SessionRenameRequest): DTO containing the new title string.
+        user_id (UUID): The unique identifier of the user
         db (AsyncSession): Database session dependency.
 
     Returns:
@@ -95,6 +97,7 @@ async def create_new_session(
 
     Args:
         request (SessionCreate): DTO containing session title and optional document_id.
+        user_id (UUID): The unique identifier of the user.
         db (AsyncSession): Database session dependency.
 
     Returns:
@@ -122,13 +125,13 @@ async def delete_chat_sessions(
 
     Args:
         request (BulkDeleteRequest): DTO containing a list of session_ids to delete.
+        user_id (UUID): The unique identifier of the user.
         db (AsyncSession): Database session dependency.
 
     Returns:
         dict: A dictionary containing the status and result of the deletion process.
     """
     try:   
-        print("user id:", user_id)
         result = await ChatService.remove_sessions(db, user_id,doc_ids )
         return {"status": "success", "data": result}
     except Exception as e:
@@ -140,6 +143,7 @@ async def fetch_history(user_id: UUID = Depends(get_current_user), db: AsyncSess
     Retrieves the complete chat session history for the current user. Current user is null for now
 
     Args:
+        user_id (UUID): The unique identifier of the user
         db (AsyncSession): Database session dependency.
 
     Returns:
@@ -147,7 +151,6 @@ async def fetch_history(user_id: UUID = Depends(get_current_user), db: AsyncSess
     """
     try:
         history = await ChatService.get_full_history(user_id, db)
-        print("User id in controller", user_id)
         return {"status": "success", "sessions": history}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

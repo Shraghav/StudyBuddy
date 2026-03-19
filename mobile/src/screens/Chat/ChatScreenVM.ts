@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-
+import EventSource from "react-native-sse";
 import { useTheme } from "react-native-paper";
 import { apiClient } from "../../services/api/api_client";
 import { RootState } from "../../store";
 import {
   addMessage,
   attachDocumentToSession,
+  updateMessageChunk,
 } from "../../store/slices/ChatSlice";
 import { FileDetail } from "../../store/slices/FileSlice";
 import { AppTheme } from "../../utils/themes";
-
+import * as SecureStore from "expo-secure-store";
 export const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
     overallContainer: { flex: 1, backgroundColor: theme.colors.background },
@@ -22,7 +23,11 @@ export const makeStyles = (theme: AppTheme) =>
       backgroundColor: theme.colors.background,
     },
     subContainer: { flex: 1 },
-    emptyText: { color: theme.colors.onSurfaceVariant, fontSize: 16 },
+    emptyText: {
+      color: theme.colors.onSurfaceVariant,
+      fontSize: 16,
+      fontWeight: "600",
+    },
     attachedFileContainer: {
       flex: 1,
       flexDirection: "row",
@@ -93,6 +98,7 @@ export const makeStyles = (theme: AppTheme) =>
       color: theme.colors.onSurfaceVariant,
       fontSize: 16,
       lineHeight: 22,
+      fontWeight: "bold",
     },
     inputContainer: {
       flexDirection: "row",
@@ -101,18 +107,17 @@ export const makeStyles = (theme: AppTheme) =>
       borderTopWidth: 1,
       borderColor: theme.colors.outlineVariant,
       alignItems: "center",
-    
     },
     input: {
       flex: 1,
       backgroundColor: theme.colors.surface,
-      color: theme.colors.onSurface, 
+      color: theme.colors.onSurface,
       borderRadius: 25,
       paddingHorizontal: 20,
       maxHeight: 100,
       fontSize: 16,
       marginRight: 5,
-      paddingVertical:20
+      paddingVertical: 20,
     },
     sendIcon: { color: theme.colors.onPrimary, fontSize: 20 },
     modalOverlay: {
@@ -178,6 +183,13 @@ export const makeStyles = (theme: AppTheme) =>
       color: theme.colors.onSurfaceVariant,
       marginTop: 2,
     },
+    sessionLoaderContent: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    sendIconSize: { width: 30, height: 30 },
+    availableDocsMaxHeight: { maxHeight: 300 },
   });
 
 export const ChatScreenVM = () => {
@@ -196,15 +208,18 @@ export const ChatScreenVM = () => {
   const availableDocs = useSelector((state: RootState) => state.files.files);
   const [inputText, setInputText] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [docLoading, setDocIsLoading] = useState(false);
   const [dots, setDots] = useState(".");
 
-  const [error,setError] = useState<String>()
-  const theme = useTheme<AppTheme>()
-  const styles = makeStyles(theme)
-
+  const theme = useTheme<AppTheme>();
+  const styles = makeStyles(theme);
 
   const attachedFile = useSelector((state: RootState) =>
     state.files.files.find((f) => f.id === currentSession?.attachedDocId),
+  );
+
+  const sessionLoading = useSelector(
+    (state: RootState) => state.chat.isLoading,
   );
 
   useEffect(() => {
@@ -222,6 +237,7 @@ export const ChatScreenVM = () => {
   const selectDocForChat = useCallback(
     async (doc: FileDetail) => {
       try {
+        setDocIsLoading(true);
         if (!currentSessionId) {
           console.error("No session available to attach");
           return;
@@ -234,9 +250,11 @@ export const ChatScreenVM = () => {
             docId: doc.id,
           }),
         );
-        setIsDocModalVisible(false);
       } catch (error) {
         console.error("Attachment failed:", error);
+      } finally {
+        setDocIsLoading(false);
+        setIsDocModalVisible(false);
       }
     },
     [currentSessionId, dispatch],
@@ -281,28 +299,64 @@ export const ChatScreenVM = () => {
         return;
       }
 
-      // Calling FastAPI backend
-      setIsChatLoading(true);
-      const response = await apiClient.post(
-        `/chat/${currentSessionId}/${attachedDoc.id}`,
-        {
-          question: userText,
-        },
-      );
-      const aiText = response.data.content.answer;
-
-      // Displaying AI Response
+      const aiMessageId = (Date.now() + 1).toString();
       dispatch(
         addMessage({
           sessionId: currentSessionId,
           message: {
-            id: Date.now().toString(),
-            text: aiText,
+            id: aiMessageId,
+            text: "",
             sender: "ai",
             timestamp: new Date().toISOString(),
           },
         }),
       );
+      // Calling FastAPI backend
+      setIsChatLoading(true);
+      const token = await SecureStore.getItemAsync("auth_token");
+
+      // 2. Dynamically pull the baseURL from your apiClient so you only have to update it in one place
+      const baseUrl = apiClient.defaults.baseURL || "http://192.168.31.74:8000";
+      const url = `${baseUrl}/chat/${currentSessionId}/${attachedDoc.id}`;
+
+      // 3. Set up the EventSource with your token in the headers
+      const es = new EventSource(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ question: userText }),
+      });
+
+      // 4. Listen for chunks
+      es.addEventListener("message", (event) => {
+        if (event.data) {
+          if (isChatLoading) {
+            setIsChatLoading(false);
+          }
+          if (event.data === '"[DONE]"') {
+            es.close();
+            setIsChatLoading(false);
+            return;
+          }
+
+          const cleanChunk = JSON.parse(event.data);
+
+          dispatch(
+            updateMessageChunk({
+              sessionId: currentSessionId,
+              messageId: aiMessageId,
+              chunk: cleanChunk,
+            }),
+          );
+        }
+      });
+      es.addEventListener("error", (err) => {
+        console.error("Stream error:", err);
+        setIsChatLoading(false);
+        es.close();
+      });
     } catch (error) {
       console.error("Error sending message to backend:", error);
       dispatch(
@@ -316,8 +370,6 @@ export const ChatScreenVM = () => {
           },
         }),
       );
-    } finally {
-      setIsChatLoading(false);
     }
   }, [inputText, currentSessionId, currentSession, availableDocs, dispatch]);
 
@@ -362,6 +414,8 @@ export const ChatScreenVM = () => {
     isChatLoading,
     dots,
     attachedFile,
-    theme
+    theme,
+    sessionLoading,
+    docLoading,
   };
 };

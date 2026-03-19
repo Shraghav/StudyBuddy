@@ -50,6 +50,13 @@ const makeStyles = (theme: AppTheme) =>
       color: theme.colors.primary,
       fontWeight: "bold",
     },
+    outlineBtn: { marginBottom: 15 },
+    errorText: {
+      color: theme.colors.error,
+      fontSize: 14,
+      marginBottom: 15,
+      textAlign: "center",
+    },
   });
 export const SignupVM = () => {
   const [fullName, setFullName] = useState("");
@@ -96,7 +103,10 @@ export const SignupVM = () => {
       setError("Password must be at least 6 characters long.");
       return false;
     }
-
+    if (password != confirmPassword) {
+      setError("Passwords does not match")
+      return false
+    }
     return true;
   };
   const handleLogin = () => {
@@ -137,6 +147,7 @@ export const SignupVM = () => {
     passwordVisible,
     confirmPasswordVisible,
     confirmPasswordIconVisible,
-    theme
+    theme,
+    error,
   };
 };

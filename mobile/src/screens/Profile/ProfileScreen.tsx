@@ -1,12 +1,11 @@
 import React from 'react';
-import { View, Text, Switch } from 'react-native';
+import { Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { ProfileScreenVM } from './ProfileScreenVM';
 
 const ProfileScreen = () => {
-    // ViewModel extracts all business logic, Redux state, and dynamic styling
     const vm = ProfileScreenVM();
     const styles = vm.styles;
 
@@ -14,12 +13,10 @@ const ProfileScreen = () => {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
 
-                {/* Header Section */}
                 <View style={styles.header}>
                     <Text style={styles.title}>Profile & Settings</Text>
                 </View>
 
-                {/* Preferences Section */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>App Preferences</Text>
 

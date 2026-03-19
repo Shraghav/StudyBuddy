@@ -111,6 +111,27 @@ const chatSlice = createSlice({
     setSessionsLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
+    updateMessageChunk: (
+      state,
+      action: PayloadAction<{
+        sessionId: string;
+        messageId: string;
+        chunk: string;
+      }>,
+    ) => {
+      const session = state.sessions.find(
+        (s) => s.id === action.payload.sessionId,
+      );
+      if (session) {
+        const message = session.messages.find(
+          (m) => m.id === action.payload.messageId,
+        );
+        if (message) {
+          // Append the incoming chunk to the existing message text
+          message.text += action.payload.chunk;
+        }
+      }
+    }
   },
 });
 
@@ -123,6 +144,7 @@ export const {
   attachDocumentToSession,
   setSessions,
   removeFiles,
-  setSessionsLoading
+  setSessionsLoading,
+  updateMessageChunk
 } = chatSlice.actions;
 export default chatSlice.reducer;

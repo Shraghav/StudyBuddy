@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timezone
-
 from pgvector.sqlalchemy import Vector
 from repository.database import Base
 from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, String,Text)

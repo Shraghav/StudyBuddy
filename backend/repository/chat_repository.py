@@ -16,7 +16,7 @@ class ChatRepository:
 
         Args:
             db (AsyncSession): Database session dependency.
-            user_id (UUID): The unique identifier of the user owning the session.
+            user_id (UUID): The unique identifier of the user
             title (str): The display title of the chat session.
             document_id (UUID, optional): The ID of the document to link initially. Defaults to None.
 
@@ -72,6 +72,7 @@ class ChatRepository:
         Args:
             db (AsyncSession): Database session dependency.
             session_id (UUID): The unique identifier of the chat session.
+            user_id (UUID): The unique identifier of the user
 
         Returns:
             List[ChatMessage]: A list of message objects ordered chronologically.
@@ -93,7 +94,8 @@ class ChatRepository:
         Performs an update operation to link a document to an existing chat session.
 
         Args:
-            db (AsyncSession): Database session dependency.
+            db (AsyncSession): Database session dependency.4
+            user_id (UUID): The unique identifier of the user
             session_id (UUID): The identifier of the session to update.
             document_id (UUID): The identifier of the document to link.
 
@@ -126,6 +128,7 @@ class ChatRepository:
         for the history view, sorted by creation date (newest first).
 
         Args:
+            user_id (UUID): The unique identifier of the user
             db (AsyncSession): Database session dependency.
 
         Returns:
@@ -145,8 +148,6 @@ class ChatRepository:
             )
             result = await db.execute(query)
             sessions = result.scalars().all()
-            print("User id in repo:",user_id )
-            print("Sessions:",sessions)
             return sessions
         except Exception as e:
             print(f"Error in ChatRepository.get_all_sessions: {e}")
@@ -159,6 +160,7 @@ class ChatRepository:
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user
             session_id (UUID): The unique identifier of the session to rename.
             new_title (str): The new string to set as the session title.
 
@@ -189,6 +191,7 @@ class ChatRepository:
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user
             session_ids (List[UUID]): A list of UUIDs representing the sessions to delete.
 
         Returns:

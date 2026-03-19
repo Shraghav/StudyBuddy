@@ -19,7 +19,7 @@ import { useTheme } from "react-native-paper";
 
 const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
-    drawerContainer: { backgroundColor: theme.colors.surface, flex:1 },
+    drawerContainer: { backgroundColor: theme.colors.surface, flex: 1 },
     drawerHeader: {
       padding: 20,
       borderBottomWidth: 1,
@@ -67,12 +67,12 @@ const makeStyles = (theme: AppTheme) =>
       flex: 1,
       backgroundColor: theme.colors.backdrop,
       justifyContent: "center",
-      padding: 20,
+      padding: 15,
     },
     modalContent: {
       backgroundColor: theme.colors.surface,
       borderRadius: 20,
-      padding: 25,
+      padding: 20,
     },
     modalTitle: {
       fontSize: 20,
@@ -81,7 +81,7 @@ const makeStyles = (theme: AppTheme) =>
       color: theme.colors.onSurface,
     },
     selectChatContainer: {
-      marginBottom: 15,
+      // marginBottom: 15,
       backgroundColor: theme.colors.secondary,
     },
     closeModalContainer: {
@@ -92,11 +92,21 @@ const makeStyles = (theme: AppTheme) =>
     chatDrawer: { width: "60%" },
     actionBtn: { color: theme.colors.onSurface },
     centeredState: {
-      flex:1,
+      flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      paddingVertical: 40, // Adds some breathing room inside the drawer
+      paddingVertical: 40,
     },
+    dontCreateText: { marginBottom: 15, color: theme.colors.onBackground },
+    renameTextContent: {
+      color: theme.colors.onSurface,
+      backgroundColor: theme.colors.surface,
+    },
+    noSessionText: { color: theme.colors.onSurfaceVariant },
+    deleteIcon: { height: 20, width: 20 },
+    cancelIcon: { height: 25, width: 20 },
+    deleteLoader: { position: "absolute", right: 83 },
+    errorText: { color: theme.colors.error }
   });
 
 export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
@@ -115,6 +125,8 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [docName, setDocName] = useState("");
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [createChatLoading, setCreateChatLoading] = useState(false);
   const [error, setError] = useState<String>();
   const theme = useTheme<AppTheme>();
   const styles = makeStyles(theme);
@@ -161,16 +173,19 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   }, []);
   const confirmRename = useCallback(async () => {
     try {
+      setSaveLoading(true);
       if (targetSessionId && docName.trim()) {
         const newTitle = docName.trim();
         await apiClient.patch(`/chat/sessions/${targetSessionId}/rename`, {
           title: newTitle,
         });
         dispatch(renameSession({ id: targetSessionId, newTitle: newTitle }));
-        setIsModalVisible(false);
       }
     } catch (error) {
       console.error("Error occured in confirmName:", error);
+    } finally {
+      setSaveLoading(false);
+      setIsModalVisible(false);
     }
   }, [targetSessionId, docName, dispatch]);
   const handleDocName = useCallback((text: string) => {
@@ -235,6 +250,7 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   // Creating newchat, closeing drawer and chat session change
   const createNewChat = useCallback(async () => {
     try {
+      setCreateChatLoading(true);
       const title = `Study Session ${sessions.length + 1}`;
       const response = await apiClient.post(`/chat/sessions`, { title });
       const newSession = response.data.session;
@@ -247,8 +263,11 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       return newSession.id;
     } catch (error) {
       console.error("Error occured in chat drawer:", error);
+    } finally {
+      setCreateChatLoading(false);
     }
   }, [sessions.length, dispatch]);
+
   const createNewChatAndCloseDrawer = useCallback(async () => {
     try {
       await createNewChat();
@@ -293,6 +312,8 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
     theme,
     error,
     isSessionLoading,
+    saveLoading,
+    createChatLoading,
   };
 };
 

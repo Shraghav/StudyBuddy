@@ -1,10 +1,9 @@
-import { useDispatch, useSelector } from "react-redux";
-import { performLogout } from "../../utils/auth";
 import { StyleSheet } from "react-native";
-import { AppDispatch, RootState } from "../../store";
-import { toggleTheme } from "../../store/slices/ThemeSlice";
-import { useState } from "react";
 import { useTheme } from "react-native-paper";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { toggleTheme } from "../../store/slices/ThemeSlice";
+import { performLogout } from "../../utils/auth";
 import { AppTheme } from "../../utils/themes";
 
 const makeStyles = (theme: AppTheme) =>
@@ -60,7 +59,7 @@ const makeStyles = (theme: AppTheme) =>
       color: theme.colors.onSurface,
     },
     logoutButton: {
-      backgroundColor: theme.colors.errorContainer, // Softer red background
+      backgroundColor: theme.colors.errorContainer,
       borderWidth: 1,
       borderColor: theme.colors.error,
     },
@@ -73,6 +72,7 @@ export const ProfileScreenVM = () => {
   const theme = useTheme<AppTheme>();
   const styles = makeStyles(theme);
   const isDark = useSelector((state: RootState) => state.theme.isDark);
+  
   const logOut = async () => {
     try {
       await performLogout();

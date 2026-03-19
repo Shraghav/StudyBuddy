@@ -41,6 +41,8 @@ const makeStyles = (theme: AppTheme) =>
     loginButtonOverride: {
       marginTop: 10,
     },
+    createAccountText: { marginTop: 3 },
+    outlineBtn: { marginBottom: 15 },
   });
 export const LoginScreenVM = () => {
   // Hooks

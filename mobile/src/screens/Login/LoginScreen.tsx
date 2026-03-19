@@ -6,7 +6,7 @@ import {
     View
 } from 'react-native';
 
-import { Button, TextInput } from 'react-native-paper';
+import { TextInput } from 'react-native-paper';
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { LoginScreenVM } from './LoginScreenVM';
 
@@ -19,14 +19,11 @@ const LoginScreen = () => {
             style={styles.container}
         >
             <View style={styles.innerContainer}>
-
-                {/* Header Section */}
                 <View style={styles.header}>
                     <Text style={styles.logoText}>StudyBuddy</Text>
                     <Text style={styles.subtitle}>Unlock your potential </Text>
                 </View>
 
-                {/* Form Section */}
                 <View style={styles.form}>
                     <TextInput
                         mode="outlined"
@@ -36,7 +33,7 @@ const LoginScreen = () => {
                         onChangeText={vm.setEmail}
                         autoCapitalize="none"
                         keyboardType="email-address"
-                        style={{ marginBottom: 15 }}
+                        style={styles.outlineBtn}
                     />
 
                     <TextInput
@@ -45,7 +42,7 @@ const LoginScreen = () => {
                         value={vm.password}
                         onChangeText={vm.setPassword}
                         secureTextEntry={!vm.passwordVisible}
-                        style={{ marginBottom: 15 }}
+                        style={styles.outlineBtn}
                         right={
                             <TextInput.Icon
                                 icon={vm.passwordVisible ? "eye-off" : "eye"}
@@ -63,10 +60,9 @@ const LoginScreen = () => {
                     />
                 </View>
 
-                {/* Footer */}
                 <View>
                     <Text style={styles.footerText}>
-                        New to StudyBuddy? <TouchableOpacity style={{ marginTop: 3 }}>
+                        New to StudyBuddy? <TouchableOpacity style={styles.createAccountText}>
                             <Text onPress={vm.navigateToSignUp} style={styles.signUpLink}>Create Account</Text>
                         </TouchableOpacity>
                     </Text>

@@ -39,7 +39,17 @@ class DocumentRepository:
 
     @staticmethod
     async def get_document_by_url(db: AsyncSession, user_id: UUID, file_url: str) -> Document:
-        """Checks if a document already exists to prevent duplicate uploads."""
+        """
+        Checks if a document already exists to prevent duplicate uploads.
+
+        Args:
+            db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user who owns the document.
+            file_url (str): The storage URL of the file to check.
+
+        Returns:
+            Document: The existing document instance if found, otherwise None.
+        """
         try:
             result = await db.execute(
             select(Document).where(
@@ -54,7 +64,14 @@ class DocumentRepository:
             
     @staticmethod
     async def update_document_status(db: AsyncSession, doc_id: UUID, new_status: str):
-        """Updates the document status to READY or FAILED."""
+        """
+        Updates the document status to READY or FAILED.
+
+        Args:
+            db (AsyncSession): Database session dependency.
+            doc_id (UUID): The unique identifier of the document to update.
+            new_status (str): The new status string (e.g., 'READY', 'FAILED', 'PROCESSING').
+        """
         try:
             await db.execute(
                 update(Document).where(Document.id == doc_id).values(status=new_status)
@@ -71,6 +88,7 @@ class DocumentRepository:
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user
 
         Returns:
             List[Document]: A list of documents sorted by newest upload first.
@@ -92,6 +110,7 @@ class DocumentRepository:
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user.
             doc_id (UUID): The unique identifier of the document.
             new_name (str): The target new name for the document.
 
@@ -125,6 +144,7 @@ class DocumentRepository:
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user.
             doc_ids (list[UUID]): List of UUIDs to be removed.
 
         Returns:
@@ -152,7 +172,13 @@ class DocumentRepository:
     
     @staticmethod
     async def bulk_create_chunks(db: AsyncSession, chunks_data: list[DocumentChunk]):
-        """Inserts all chunks in a single database transaction."""
+        """
+        Inserts all chunks in a single database transaction.
+
+        Args:
+            db (AsyncSession): Database session dependency.
+            chunks_data (list[DocumentChunk]): A list of DocumentChunk model instances to persist.
+        """
         try:
             db.add_all(chunks_data)
             await db.commit()
