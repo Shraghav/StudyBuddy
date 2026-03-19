@@ -2,8 +2,8 @@ import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { isTokenValid, performLogout } from "../../utils/auth";
 export const apiClient = axios.create({
-  baseURL: "https://studybuddy-f5u3.onrender.com",
-  // baseURL: "http://192.168.31.74:8000",
+  // baseURL: "https://studybuddy-f5u3.onrender.com",
+  baseURL: "http://192.168.31.74:8000",
   headers: {
     "Content-Type": "application/json",
   },
