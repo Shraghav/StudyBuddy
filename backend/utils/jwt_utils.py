@@ -1,10 +1,11 @@
 import os
 
+import jwt
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from dotenv import load_dotenv
 from utils.supabase_utils import supabase
-import jwt
+
 load_dotenv()
 security = HTTPBearer()
 

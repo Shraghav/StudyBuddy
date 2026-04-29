@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(document_router)
 app.include_router(chat_controller)
-# Add CORS Middleware
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # In production, replace "*" with your specific domains

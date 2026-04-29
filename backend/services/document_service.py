@@ -6,7 +6,7 @@ from uuid import UUID
 
 import httpx
 from dto.document_dto import DocumentCreate
-from fastapi import BackgroundTasks, UploadFile
+from fastapi import BackgroundTasks
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter

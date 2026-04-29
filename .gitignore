@@ -44,3 +44,8 @@ __pycache__/
 .env
 keys- web.json
 keys- android.json
+
+alembic.ini
+/alembic
+backend/alembic
+backend/practice.py
