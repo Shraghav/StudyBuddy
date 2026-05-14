@@ -1,8 +1,8 @@
 import logging
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
-from dto.quiz_dto import QuizGenerationRequestDTO, QuizGenerationResponseDTO, QuizQuestionRequest, QuizSessionResponseDTO,QuizSetUPAndDeleteResponseDTO, QuizSubmitResponseDTO
+from dto.quiz_dto import QuizGenerationRequestDTO, QuizGenerationResponseDTO, QuizQuestionRequest, QuizSessionRenameRequest, QuizSessionRenameResponse, QuizSessionResponseDTO,QuizSetUPAndDeleteResponseDTO, QuizSubmitResponseDTO
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from repository.database import get_async_session
 from services.quiz_service import QuizService
@@ -17,7 +17,6 @@ router = APIRouter(
 
 @router.post("/setup", response_model=QuizSetUPAndDeleteResponseDTO)
 async def setup_quiz(
-    doc_id: UUID, 
     db: AsyncSession = Depends(get_async_session), 
     user_id=Depends(get_current_user)
 ):
@@ -26,7 +25,6 @@ async def setup_quiz(
         session = await QuizService.initialize_quiz(
             db=db, 
             user_id=user_id, 
-            doc_id = doc_id
         )
 
         return session
@@ -37,6 +35,56 @@ async def setup_quiz(
     except Exception as e:
         logger.error(f"Controller Error (setup): {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to initialize quiz setup.")
+
+@router.patch("/{session_id}/attach/{document_id}")
+async def attach_document_to_session(
+    session_id: UUID, 
+    document_id: UUID, 
+    user_id: UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Links an existing document to an active chat session.
+
+    Args:
+        session_id (UUID): The unique identifier of the chat session.
+        document_id (UUID): The unique identifier of the document to be attached.
+        user_id (UUID): The unique identifier of the user
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        dict: A dictionary confirming the success of the link operation.
+    """
+    try:
+        await QuizService.update_document(db,user_id, session_id, document_id)
+        return {"status": "success", "message": "Document linked successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/sessions/{session_id}/rename", response_model=QuizSessionRenameResponse)
+async def rename_chat_session(
+    session_id: UUID, 
+    request: QuizSessionRenameRequest, 
+    user_id: UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Updates the title of a specific chat session.
+
+    Args:
+        session_id (UUID): The unique identifier of the session to rename.
+        request (SessionRenameRequest): DTO containing the new title string.
+        user_id (UUID): The unique identifier of the user
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        dict: A dictionary containing the status and the updated session data.
+    """
+    try:
+        result = await QuizService.update_quiz_session_title(db,user_id, session_id, request.title)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/", response_model=List[QuizSessionResponseDTO])
 async def get_sidebar_history(

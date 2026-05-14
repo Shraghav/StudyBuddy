@@ -4,9 +4,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from dto.enums import QuizStatus
 
-class QuizSetupParamsDTO(BaseModel):
-    document_id:UUID
-
 # Quiz Generation  request and response
 class QuizGenerationRequestDTO(BaseModel):
     numQuestions: int = Field(..., gt=0, le=25)
@@ -75,4 +72,10 @@ class QuizSubmitResponseDTO(BaseModel):
     message:str
     status:str
 
+class QuizSessionRenameRequest(BaseModel):
+    title: str
+
+class QuizSessionRenameResponse(BaseModel):
+    status: str
+    data:Dict[str, str]
 QuizSessionResponseDTO = Union[QuizSessionCompletedDTO, QuizSessionActiveDTO, QuizSessionMinimalDTO]

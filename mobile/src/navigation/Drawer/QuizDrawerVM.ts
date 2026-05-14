@@ -1,6 +1,6 @@
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 import { RootState } from "../../store";
@@ -12,6 +12,7 @@ import {
 } from "../../store/slices/QuizSlice";
 import { AppTheme } from "../../utils/themes";
 import { useTheme } from "react-native-paper";
+import { apiClient } from "../../services/api/api_client";
 
 const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
@@ -106,18 +107,33 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
   // States for Batch Selection
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
+  const [isCreating, setIsCreating] = useState(false);
   const theme = useTheme<AppTheme>();
   const styles = makeStyles(theme);
   // Handling quiz and history
-  const handleNewQuiz = () => {
+  const handleNewQuiz = async () => {
+    if (isCreating) return; // Prevent double taps
+
+    setIsCreating(true);
     try {
-      const newId = Date.now().toString();
-      dispatch(createNewQuiz(newId));
+      // 1. Ask FastAPI to create the session shell
+      const response = await apiClient.post("/quiz/setup");
+      const newSessionId = response.data.session_id;
+
+      // 2. Initialize Redux with the real UUID
+      dispatch(createNewQuiz(newSessionId));
+
+      // 3. Navigate and close drawer
       props.navigation.navigate("QuizStack", { screen: "QuizSetup" });
       props.navigation.closeDrawer();
     } catch (error) {
       console.error("Error occured in handleNewQuiz:", error);
+      Alert.alert(
+        "Connection Error",
+        "Could not start a new quiz session. Please try again.",
+      );
+    } finally {
+      setIsCreating(false);
     }
   };
   const handleSelectHistory = (id: string, status: string) => {

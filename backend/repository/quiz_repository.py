@@ -15,13 +15,12 @@ logger = logging.getLogger(__name__)
 
 class QuizRepository:
     @staticmethod
-    async def create_quiz_session(db:AsyncSession, user_id: UUID, title: str, doc_id: UUID) -> QuizSession:
+    async def create_quiz_session(db:AsyncSession, user_id: UUID, title: str) -> QuizSession:
         """Creates the initial shell for a quiz session."""
         try:
             new_session = QuizSession(
             user_id=user_id,     
             title=title, 
-            document_id=doc_id,
             questions = []
         )
             db.add(new_session)
@@ -103,28 +102,67 @@ class QuizRepository:
             raise e
 
     @staticmethod
-    async def update_quiz_data(db:AsyncSession, session_id: UUID, user_id:UUID, status: Optional[QuizStatus] = None, quiz_params: Optional[QuizGenerationRequestDTO] = None) -> Optional[QuizSession]:
-        """Quick utility to flip the status of a quiz."""
-        try:
-            session = await QuizRepository.get_quiz_session_by_id(db,session_id, user_id)
-            if not session:
-                return None
-                
-            if status is not None:
-                session.status = status
+    async def update_session_document(db: AsyncSession,user_id:UUID, session_id: UUID, document_id: UUID):
+        """
+        Performs an update operation to link a document to an existing chat session.
 
-            if quiz_params is not None:
-                quiz_params_dict = quiz_params.model_dump()
-                session.setup_params = quiz_params_dict
+        Args:
+            db (AsyncSession): Database session dependency.4
+            user_id (UUID): The unique identifier of the user
+            session_id (UUID): The identifier of the session to update.
+            document_id (UUID): The identifier of the document to link.
+
+        Returns:
+            bool: True if the update operation was successful.
+
+        Raises:
+            Exception: If the update fails, with an automatic rollback.
+        """
+        try:
+            query = (
+                update(QuizSession)
+                .where(QuizSession.id == session_id, QuizSession.user_id == user_id)
+                .values(document_id=document_id)
+            )
+            await db.execute(query)
             await db.commit()
-            await db.refresh(session)
-            return session
-            
+            return True
         except Exception as e:
+            print(f"Error in ChatRepository.update_session_document: {e}")
             await db.rollback()
-            logger.error(f"Error updating the data for session {session_id}: {str(e)}")
             raise e
 
+    @staticmethod
+    async def rename_session(db: AsyncSession,user_id:UUID, session_id: UUID, new_title: str):
+        """
+        Updates the title field for a specific ChatSession record.
+
+        Args:
+            db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user
+            session_id (UUID): The unique identifier of the session to rename.
+            new_title (str): The new string to set as the session title.
+
+        Returns:
+            bool: True if the commit was successful.
+
+        Raises:
+            Exception: If the title update fails, with an automatic rollback.
+        """
+        try:
+            query = (
+                update(QuizSession)
+                .where(QuizSession.id == session_id, QuizSession.user_id == user_id)
+                .values(title=new_title)
+            )
+            await db.execute(query)
+            await db.commit()
+            return True
+        except Exception as e:
+            await db.rollback()
+            print(f"Error in ChatRepository.rename_session: {e}")
+            raise e
+ 
     @staticmethod
     async def save_generated_questions(
         db:AsyncSession, 

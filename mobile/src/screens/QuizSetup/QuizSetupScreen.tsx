@@ -22,7 +22,7 @@ export const QuizSetupScreen = () => {
     )
   }
 
-  const { setupParams } = vm.currentSession;
+  // const { setupParams } = vm.currentSession;
 
   const InlineSelector = ({ label, options, selected, onSelect }: any) => (
     <View style={{ marginBottom: 20 }}>
@@ -50,7 +50,10 @@ export const QuizSetupScreen = () => {
 
       <ScrollView style={styles.content}>
         <Text style={styles.label}>Select Study Material</Text>
-        <TouchableOpacity style={styles.docSelector} onPress={() => vm.handleModel(true)}>
+        <TouchableOpacity style={styles.docSelector} onPress={() => {
+          vm.handleModel(true)
+          vm.documentSelect(vm.currentSession?.documentId)
+        }}>
           <Text style={styles.docSelectorText}>
             {vm.currentSession?.documentName ? `📄 ${vm.currentSession.documentName}` : "Tap to select a PDF"}
           </Text>
@@ -59,8 +62,8 @@ export const QuizSetupScreen = () => {
         <TextInput
           label="Number of Questions (Max 25)"
           keyboardType="numeric"
-          value={setupParams.numQuestions}
-          onChangeText={(val) => vm.updateSetup({ numQuestions: val })}
+          // value={setupParams.numQuestions}
+          // onChangeText={(val) => vm.updateSetup({ numQuestions: val })}
           outlineColor='#C0C0C0'
           activeOutlineColor='#7393B3'
         />
@@ -68,23 +71,23 @@ export const QuizSetupScreen = () => {
         <InlineSelector
           label="Difficulty Level"
           options={['Easy', 'Medium', 'Hard']}
-          selected={setupParams.difficulty}
-          onSelect={(val: any) => vm.updateSetup({ difficulty: val })}
+          // selected={setupParams.difficulty}
+          // onSelect={(val: any) => vm.updateSetup({ difficulty: val })}
         />
 
         <InlineSelector
           label="Question Format"
           options={['mcq', 'text']}
-          selected={setupParams.format}
-          onSelect={(val: any) => vm.updateSetup({ format: val })}
+          // selected={setupParams.format}
+          // onSelect={(val: any) => vm.updateSetup({ format: val })}
         />
 
         <TextInput
           mode="outlined"
           label="Custom Instructions for AI"
           placeholder="E.g., Focus mainly on chapter 3 formulas..."
-          value={setupParams.customPrompt}
-          onChangeText={(val) => vm.updateSetup({ customPrompt: val })}
+          // value={setupParams.customPrompt}
+          // onChangeText={(val) => vm.updateSetup({ customPrompt: val })}
           multiline
           style={{ height: 80 }} // Changed from inputStyle to style
           outlineColor="#C0C0C0"
@@ -107,7 +110,7 @@ export const QuizSetupScreen = () => {
               keyExtractor={item => item.id}
               renderItem={({ item }) => (
                 <CustomButton onPress={() => {
-                  vm.documentSelect({ id: item.id, name: item.name })
+                  vm.documentSelect(item.id)
                   vm.handleModel(false)
                 }} title={`📄 ${item.name}`} viewstyle={styles.docItem} textStyle={styles.pdfName} />
               )}

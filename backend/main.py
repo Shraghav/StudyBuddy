@@ -10,7 +10,6 @@ from repository.database import create_db
 from repository.models import (ChatMessage, ChatSession, Document,
                                DocumentChunk, User, QuizSession, QuizQuestion)
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Creating database tables...")
