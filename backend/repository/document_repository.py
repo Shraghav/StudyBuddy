@@ -8,7 +8,6 @@ from sqlalchemy.future import select
 
 
 class DocumentRepository:
-    
     @staticmethod
     async def create_document(db: AsyncSession,user_id:UUID, name: str, size: int, file_url: str) -> Document:
         """

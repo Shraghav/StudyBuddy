@@ -18,7 +18,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     try:
         response = supabase.auth.get_user(credentials.credentials)
         return response.user.id
-        
     except jwt.PyJWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
