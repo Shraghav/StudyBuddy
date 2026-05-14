@@ -57,6 +57,7 @@ const makeStyles = (theme: AppTheme) =>
       borderWidth: 2,
       borderColor: theme.colors.error,
       backgroundColor: theme.colors.errorContainer,
+      borderRadius: 15,
     },
     historyText: { fontSize: 16, color: theme.colors.onSurface },
     historyTextActive: {
@@ -106,7 +107,7 @@ const makeStyles = (theme: AppTheme) =>
     deleteIcon: { height: 20, width: 20 },
     cancelIcon: { height: 25, width: 20 },
     deleteLoader: { position: "absolute", right: 83 },
-    errorText: { color: theme.colors.error }
+    errorText: { color: theme.colors.error },
   });
 
 export const ChatDrawerVM = (props: DrawerContentComponentProps) => {

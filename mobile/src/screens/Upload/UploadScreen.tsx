@@ -63,10 +63,10 @@ export const UploadScreen = () => {
             {vm.isSelectionMode && vm.selectedIds.length > 0 && (
               <View style={styles.actionIcons}>
                 <TouchableOpacity onPress={vm.deleteSelectedFiles} style={styles.iconBtn}>
-                  <Image source={Images.delete} style={styles.iconDimensions} resizeMode='contain' />
+                  <Image tintColor={vm.theme.colors.onSurface} source={Images.delete} style={styles.iconDimensions} resizeMode='contain' />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={vm.exitSelection} style={styles.iconBtn}>
-                  <Image source={Images.cancel} style={styles.iconDimensions} resizeMode='contain' />
+                  <Image tintColor={vm.theme.colors.onSurface} source={Images.cancel} style={styles.iconDimensions} resizeMode='contain' />
                 </TouchableOpacity>
               </View>
             )}
@@ -137,6 +137,7 @@ export const UploadScreen = () => {
                 title="Save Name"
                 onPress={vm.confirmRename}
                 viewstyle={styles.saveBtn}
+                loading={vm.saveName}
               />
             </View>
           </View>

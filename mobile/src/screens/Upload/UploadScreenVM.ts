@@ -145,6 +145,7 @@ export const UploadScreenVM = () => {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isCooldown, setIsCooldown] = useState(true);
   const [error, setError] = useState<String>();
+  const [saveName, setSaveName] = useState(false);
   const theme = useTheme<AppTheme>();
   const styles = makeStyles(theme);
   const COOLDOWN_TIME_MS = 7000;
@@ -189,6 +190,7 @@ export const UploadScreenVM = () => {
   // Confirming rename with backend and updating UI
   const confirmRename = useCallback(async () => {
     try {
+      setSaveName(true)
       if (currentFileId && docName.trim()) {
         const finalName = docName.trim().endsWith(".pdf")
           ? docName.trim()
@@ -203,6 +205,9 @@ export const UploadScreenVM = () => {
       }
     } catch (error) {
       console.error("Error in confirmRename:", error);
+    }
+    finally {
+      setSaveName(false)
     }
   }, [currentFileId, docName, dispatch, closeModal]);
 
@@ -281,14 +286,10 @@ export const UploadScreenVM = () => {
         multiple: false,
         copyToCacheDirectory: true,
       });
-      console.log("Pick up docs:", result.assets)
       if (!result.canceled) {
         setIsUploading(true);
         for (const asset of result.assets) {
-          // 1. Prepare File for Supabase (React Native needs an ArrayBuffer)
           const file = new FileSystem.File(asset.uri);
-
-          // 2. Read the base64 content
           const base64 = await file.base64();
 
           const fileName = `${Date.now()}_${asset.name}`;
@@ -301,19 +302,16 @@ export const UploadScreenVM = () => {
               });
           if (uploadError) throw uploadError;
 
-          // 3. Get the Public URL from Supabase
           const { data: urlData } = supabase.storage
             .from("study-buddy-docs")
             .getPublicUrl(filePath);
 
           const publicUrl = urlData.publicUrl;
-          // 4. Calling backend with JSON
           const response = await apiClient.post(`/documents/upload`, {
             name: asset.name,
             file_url: publicUrl,
             size: asset.size,
           });
-          console.log("Doc after response from backend");
           const localFileWithServerId = {
             ...response.data,
             uri: asset.uri,
@@ -322,7 +320,6 @@ export const UploadScreenVM = () => {
           dispatch(addFiles([localFileWithServerId]));
         }
       }
-      console.log("Data after loading doc")
     } catch (err) {
       console.error("Error picking/uploading document:", err);
     } finally {
@@ -356,5 +353,6 @@ export const UploadScreenVM = () => {
     isCooldown,
     theme,
     error,
+    saveName
   };
 };

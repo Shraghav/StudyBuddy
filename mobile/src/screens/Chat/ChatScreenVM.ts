@@ -1,8 +1,9 @@
+import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import EventSource from "react-native-sse";
 import { useTheme } from "react-native-paper";
+import EventSource from "react-native-sse";
+import { useDispatch, useSelector } from "react-redux";
 import { apiClient } from "../../services/api/api_client";
 import { RootState } from "../../store";
 import {
@@ -12,7 +13,6 @@ import {
 } from "../../store/slices/ChatSlice";
 import { FileDetail } from "../../store/slices/FileSlice";
 import { AppTheme } from "../../utils/themes";
-import * as SecureStore from "expo-secure-store";
 export const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
     overallContainer: { flex: 1, backgroundColor: theme.colors.background },

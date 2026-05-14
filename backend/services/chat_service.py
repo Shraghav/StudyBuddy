@@ -2,13 +2,16 @@ import json
 import os
 from typing import List
 from uuid import UUID
+
 from dotenv import load_dotenv
 from fastapi.responses import StreamingResponse
+
+from utils.prompts import CHAT_PROMPT
+
 load_dotenv()
 from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_groq import ChatGroq
-
 from repository.chat_repository import ChatRepository
 from repository.document_repository import DocumentRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,22 +54,7 @@ class ChatService:
                 groq_api_key=os.getenv("GROQ_API_KEY"),
                 streaming=True
             )
-            prompt = PromptTemplate.from_template(
-            """You are StudyBuddy, an intelligent and helpful AI tutor. 
-            Use the following pieces of retrieved context to answer the user's question. 
-            
-            - If the answer is explicitly in the context, state it clearly.
-            - If the context strongly implies the answer, you may deduce it.
-            - If you truly cannot find the answer in the context, say "I cannot find this specific information in the document."
-            - Do not use outside internet knowledge.
-            
-            Context: 
-            {context}
-            
-            Question: {question}
-            
-            Helpful Answer:"""
-        )
+            prompt = PromptTemplate.from_template(CHAT_PROMPT)
             chain = prompt | llm
 
             async def event_generator():

@@ -34,8 +34,9 @@ async def upload_document(background_tasks: BackgroundTasks,user_id: UUID = Depe
         HTTPException: 400 if the file is not a PDF, 500 for internal server errors.
     """
     try:
-        if not file.name.endswith(".pdf"):
-            raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+        print("File name:",file)
+        # if not file.name.endswith(".pdf"):
+        #     raise HTTPException(status_code=400, detail="Only PDF files are allowed")
         return await DocumentService.upload_file(db,user_id, file, background_tasks)
     except Exception as e:
         print("Exceptionn:", e  )

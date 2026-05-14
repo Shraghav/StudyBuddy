@@ -6,15 +6,14 @@ from uuid import UUID
 
 import httpx
 from dto.document_dto import DocumentCreate
-from fastapi import BackgroundTasks, UploadFile
+from fastapi import BackgroundTasks
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from repository.database import async_session_maker
 from repository.document_repository import DocumentRepository
 from repository.models import DocumentChunk
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from repository.database import async_session_maker
 from utils.supabase_utils import supabase
 
 UPLOAD_DIR = "uploads"
