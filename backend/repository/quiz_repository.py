@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from dto.enums import QuizStatus
-from dto.quiz_dto import QuizGenerationRequestDTO, QuizQuestionRequest, QuizSessionCompletedDTO
+from dto.quiz_dto import QuizGenerationRequestDTO, QuizQuestionRequest
 from repository.models import Document, QuizQuestion, QuizSession
 from sqlalchemy import delete, func, update
 from sqlalchemy.exc import SQLAlchemyError
