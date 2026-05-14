@@ -6,17 +6,19 @@ import {
   createNewQuiz,
   setDocumentForQuiz,
   startQuiz,
-  updateSetupParams,
+  // updateSetupParams,
 } from "../../store/slices/QuizSlice";
 
 import { useNavigation } from "@react-navigation/native";
 import { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
+import { Alert, StyleSheet } from "react-native";
+import { apiClient } from "../../services/api/api_client";
 
 export const QuizSetupVM = () => {
   // Hooks
   const navigation = useNavigation<QuizScreenNavigationProp>();
   const [isDocModalVisible, setDocModalVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const currentSessionId = useSelector(
     (state: RootState) => state.quiz.currentSessionId,
   );
@@ -156,59 +158,79 @@ export const QuizSetupVM = () => {
   };
 
   // Redux functionalities
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
-      return dispatch(createNewQuiz(Date.now().toString()));
+      const response = await apiClient.post("/quiz/setup");
+      const newSessionId = response.data.session_id;
+      return dispatch(createNewQuiz(newSessionId));
     } catch (error) {
       console.error("Error occured in handleCreateNew:", error);
+      Alert.alert("Setup Error", "Failed to initialize a new quiz session.");
+    } finally {
+      setIsLoading(false);
     }
   };
-  const documentSelect = (doc: { id: string; name: string }) => {
+
+  const documentSelect = async (doc_id?:string) => {
+    if (!currentSessionId || isLoading) return;
+    setIsLoading(true);
     try {
-      return dispatch(setDocumentForQuiz(doc));
+      if (doc_id) {
+        await apiClient.patch(`/${currentSessionId}/attach/${doc_id}`);
+        handleModel(false);
+
+        return dispatch(setDocumentForQuiz({id:doc_id}));
+      }
     } catch (error) {
       console.error("Error in documentSelect:", error);
+      Alert.alert(
+        "Attachment Error",
+        "Failed to attach the document to this session.",
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
-  const updateSetup = (params: any) => {
-    try {
-      return dispatch(updateSetupParams(params));
-    } catch (error) {
-      console.error("Error in updateSetup:", error);
-    }
-  };
+  // const updateSetup = (params: any) => {
+  //   try {
+  //     return dispatch(updateSetupParams(params));
+  //   } catch (error) {
+  //     console.error("Error in updateSetup:", error);
+  //   }
+  // };
   // Generating quiz
-  const generateAndStartQuiz = async () => {
-    if (!currentSession) return;
+  // const generateAndStartQuiz = async () => {
+  //   if (!currentSession) return;
 
-    const mockQuestions = Array.from({
-      length: parseInt(currentSession.setupParams.numQuestions) || 5,
-    }).map(
-      (_, i) =>
-        ({
-          id: `q_${i}`,
-          text: `Mock AI Question ${i + 1} for ${currentSession.documentName}?`,
-          type: currentSession.setupParams.format,
-          options:
-            currentSession.setupParams.format === "mcq"
-              ? ["A", "B", "C", "D"]
-              : undefined,
-          correctAnswer:
-            currentSession.setupParams.format === "mcq"
-              ? "A"
-              : "Mock AI Answer",
-        }) as any,
-    );
+  //   const mockQuestions = Array.from({
+  //     length: parseInt(currentSession.setupParams.numQuestions) || 5,
+  //   }).map(
+  //     (_, i) =>
+  //       ({
+  //         id: `q_${i}`,
+  //         text: `Mock AI Question ${i + 1} for ${currentSession.documentName}?`,
+  //         type: currentSession.setupParams.format,
+  //         options:
+  //           currentSession.setupParams.format === "mcq"
+  //             ? ["A", "B", "C", "D"]
+  //             : undefined,
+  //         correctAnswer:
+  //           currentSession.setupParams.format === "mcq"
+  //             ? "A"
+  //             : "Mock AI Answer",
+  //       }) as any,
+  //   );
 
-    dispatch(startQuiz(mockQuestions));
-    navigation.navigate("ActiveQuiz");
-  };
-
+  //   dispatch(startQuiz(mockQuestions));
+  //   navigation.navigate("ActiveQuiz");
+  // };
+  const generateAndStartQuiz = () => {};
   return {
     currentSession,
     availableDocs,
-    handleCreateNew,
-    updateSetup,
+    // updateSetup,
     documentSelect,
     generateAndStartQuiz,
     styles,

@@ -14,16 +14,16 @@ export interface QuizSession {
   documentId?: string;
   documentName?: string;
   status: "setup" | "active" | "completed";
-  setupParams: {
+  setupParams?: {
     numQuestions: string;
     difficulty: "Easy" | "Medium" | "Hard";
     format: "mcq" | "text";
     customPrompt: string;
   };
-  questions: Question[];
-  userAnswers: Record<string, string>; 
-  score: number;
-  feedback: string;
+  questions?: Question[];
+  userAnswers?: Record<string, string>;
+  score?: number;
+  feedback?: string;
 }
 
 interface QuizState {
@@ -42,12 +42,6 @@ const quizSlice = createSlice({
         id: action.payload,
         title: `Quiz ${state.sessions.length + 1}`,
         status: "setup",
-        setupParams: {
-          numQuestions: "5",
-          difficulty: "Medium",
-          format: "mcq",
-          customPrompt: "",
-        },
         questions: [],
         userAnswers: {},
         score: 0,
@@ -66,19 +60,15 @@ const quizSlice = createSlice({
       const session = state.sessions.find(
         (s) => s.id === state.currentSessionId,
       );
-      if (session)
+      if (session && session.setupParams)
         session.setupParams = { ...session.setupParams, ...action.payload };
     },
-    setDocumentForQuiz: (
-      state,
-      action: PayloadAction<{ id: string; name: string }>,
-    ) => {
+    setDocumentForQuiz: (state, action: PayloadAction<{ id: string }>) => {
       const session = state.sessions.find(
         (s) => s.id === state.currentSessionId,
       );
       if (session) {
         session.documentId = action.payload.id;
-        session.documentName = action.payload.name;
       }
     },
     startQuiz: (state, action: PayloadAction<Question[]>) => {
@@ -97,20 +87,24 @@ const quizSlice = createSlice({
       const session = state.sessions.find(
         (s) => s.id === state.currentSessionId,
       );
-      if (session)
+      if (session && session.userAnswers)
         session.userAnswers[action.payload.questionId] = action.payload.answer;
     },
     submitQuiz: (state) => {
       const session = state.sessions.find(
         (s) => s.id === state.currentSessionId,
       );
-      if (session) {
+      if (session && session.questions) {
         session.status = "completed";
         const mcqQuestions = session.questions.filter((q) => q.type === "mcq");
         let correctCount = 0;
 
         mcqQuestions.forEach((q) => {
-          if (session.userAnswers[q.id] === q.correctAnswer) correctCount++;
+          if (
+            session.userAnswers &&
+            session.userAnswers[q.id] === q.correctAnswer
+          )
+            correctCount++;
         });
 
         session.score = correctCount;
@@ -151,6 +145,6 @@ export const {
   answerQuestion,
   submitQuiz,
   renameQuiz,
-  removeQuizzes
+  removeQuizzes,
 } = quizSlice.actions;
 export default quizSlice.reducer;

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class QuizService:
 
     @staticmethod
-    async def initialize_quiz(db: AsyncSession, user_id: UUID, doc_id: UUID):
+    async def initialize_quiz(db: AsyncSession, user_id: UUID):
         try:
             current_count = await QuizRepository.get_user_quiz_count(db, user_id)
             if current_count >= 10:
@@ -24,7 +24,7 @@ class QuizService:
                     detail="Limit reached. Please delete an old quiz to create a new one."
                 )
             title = f"Quiz {current_count}"
-            response = await QuizRepository.create_quiz_session(db, user_id, title, doc_id)
+            response = await QuizRepository.create_quiz_session(db, user_id, title)
             return {"message":"Quiz is initialized successfully", "session_id":response.id}
 
         except HTTPException:
@@ -130,6 +130,26 @@ class QuizService:
             logger.error(f"Service Error (sidebar): {str(e)}")
             raise HTTPException(status_code=500, detail="Could not load quiz history.")
 
+    async def update_document(db: AsyncSession,user_id:UUID,session_id:UUID, document_id: UUID):
+        """
+        Updates the document association for an existing chat session.
+
+        Args:
+            db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user
+            session_id (UUID): The identifier of the chat session to update.
+            document_id (UUID): The identifier of the new document to link.
+
+        Returns:
+            dict: Confirmation containing the updated session details.
+        """
+        try:
+            session = await QuizRepository.update_session_document(db,user_id, session_id, document_id)
+            return {"Updated document": session}
+        except Exception as e:
+            print(f"Error in ChatService.create_session: {e}")
+            raise e
+    
     @staticmethod
     async def delete_quiz(db: AsyncSession, session_id: UUID, user_id: UUID):
         try:
@@ -145,7 +165,7 @@ class QuizService:
         except Exception as e:
             logger.error(f"Service Error (delete): {str(e)}")
             raise HTTPException(status_code=500, detail="Failed to delete quiz.")
-        
+
     @staticmethod
     async def trigger_quiz_generation(db: AsyncSession, session_id: UUID, background_tasks: BackgroundTasks, user_id:UUID, quiz_params:QuizGenerationRequestDTO):
         """
@@ -171,6 +191,27 @@ class QuizService:
         except Exception as e:
             logger.error(f"Service Error (trigger_gen): {str(e)}")
             raise HTTPException(status_code=500, detail="Failed to start generation.")
+
+    @staticmethod
+    async def update_quiz_session_title(db: AsyncSession,user_id:UUID, session_id: UUID, new_title: str):
+        """
+        Modifies the display title of a specific chat session.
+
+        Args:
+            db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user.
+            session_id (UUID): The identifier of the session to be renamed.
+            new_title (str): The new title string.
+
+        Returns:
+            dict: A success message confirmation.
+        """
+        try:
+            await QuizRepository.rename_session(db,user_id, session_id, new_title)
+            return {"message": "Session renamed successfully"}
+        except Exception as e:
+            print(f"Error in ChatService.update_session_title: {e}")
+            raise e
 
     @staticmethod
     async def submit_text_quiz(db: AsyncSession, session_id: UUID, user_submissions: List[QuizQuestionRequest], background_tasks: BackgroundTasks, user_id:UUID):
