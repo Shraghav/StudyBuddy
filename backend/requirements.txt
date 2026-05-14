@@ -2,20 +2,32 @@
 fastapi
 uvicorn
 supabase
+python-multipart
+PyJWT
+pwdlib[argon2]
+
 # Database & ORM
 sqlalchemy[asyncio]
 asyncpg
 pgvector
+
 # AI & LangChain
 langchain
+langchain-core
 langchain-community
 langchain-google-genai
-pypdf
 langchain-groq
-# Testing & Utilities
-pytest
+pypdf
+
+# OCR & PDF Processing
+pdf2image
+rapidocr_onnxruntime
+numpy
+
+# Utilities & HTTP
 httpx
-python-multipart
-pwdlib
-pwdlib[argon2]
-PyJWT
+python-dotenv
+logging
+
+# Testing
+pytest
