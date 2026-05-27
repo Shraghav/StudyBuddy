@@ -56,7 +56,7 @@ export const makeStyles = (theme: AppTheme) => StyleSheet.create({
     fileName: {
         fontSize: 16,
         fontWeight: '600',
-        color: theme.colors.onSurface 
+        color: theme.colors.onBackground,
     },
     subText: {
         fontSize: 12,

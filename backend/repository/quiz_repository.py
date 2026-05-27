@@ -36,7 +36,7 @@ class QuizRepository:
             await db.rollback()
             logger.error(f"Unexpected error in create_quiz_session: {str(e)}")
             raise e
-        
+         
     @staticmethod
     async def get_user_quiz_count(db:AsyncSession, user_id: UUID) -> int:
         """Counts how many active quizzes a user has to enforce the 10-quiz limit."""
@@ -124,7 +124,9 @@ class QuizRepository:
                 .where(QuizSession.id == session_id, QuizSession.user_id == user_id)
                 .values(document_id=document_id)
             )
-            await db.execute(query)
+
+            result = await db.execute(query)
+            print("Result in repo:", result)
             await db.commit()
             return True
         except Exception as e:
@@ -158,6 +160,43 @@ class QuizRepository:
             await db.execute(query)
             await db.commit()
             return True
+        except Exception as e:
+            await db.rollback()
+            print(f"Error in ChatRepository.rename_session: {e}")
+            raise e
+    
+    @staticmethod
+    async def update_quiz_data(db: AsyncSession,user_id:UUID, session_id: UUID, status: QuizStatus, quiz_params: Optional[QuizGenerationRequestDTO] = None):
+        """
+        Updates the title field for a specific ChatSession record.
+
+        Args:
+            db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user
+            session_id (UUID): The unique identifier of the session to rename.
+            new_title (str): The new string to set as the session title.
+
+        Returns:
+            bool: True if the commit was successful.
+
+        Raises:
+            Exception: If the title update fails, with an automatic rollback.
+        """
+        try:
+            update_data = {"status": status}
+
+            if quiz_params is not None:
+                update_data["setup_params"] = quiz_params.model_dump()
+            query = (
+                update(QuizSession)
+                .where(QuizSession.id == session_id, QuizSession.user_id == user_id)
+                .values(update_data)
+                .returning(QuizSession)
+            )
+            result = await db.execute(query)
+            updated_session = result.scalars().first()
+            await db.commit()
+            return updated_session
         except Exception as e:
             await db.rollback()
             print(f"Error in ChatRepository.rename_session: {e}")
@@ -224,7 +263,7 @@ class QuizRepository:
                 if qid_str in eval_map:
                     ans_data = eval_map[qid_str]
                     question.user_answer = ans_data["user_answer"]
-                    question.evaluation_score = 100.0 if ans_data["is_correct"] else 0.0
+                    question.evaluation_score = 1.0 if ans_data["is_correct"] else 0.0
             db.add(session)
             await db.commit()
             await db.refresh(session)
@@ -235,72 +274,70 @@ class QuizRepository:
             logger.error(f"Error saving MCQ evaluation{str(e)}")
             raise e
 
-    @staticmethod
-    async def save_text_evaluation(
-        db: AsyncSession, 
-        session_id: UUID, 
-        evaluations: List[Dict[str, Any]], 
-        total_score: int,
-        user_id:UUID
-    ) -> Optional[QuizSession]:
-        """Saves AI-generated scores and feedback for text-based answers."""
-        try:
-            stmt = select(QuizSession).where(QuizSession.id == session_id).options(
-                selectinload(QuizSession.questions)
-            )
-            result = await db.execute(stmt)
-            session = result.scalar_one_or_none()
-            if not session:
-                return None
-            session.score = total_score
-            session.status = "completed"
-            eval_map = {UUID(e["question_id"]) if isinstance(e["question_id"], str) else e["question_id"]: e 
-                        for e in evaluations}
-            for question in session.questions:
-                if question.id in eval_map:
-                    data = eval_map[question.id]
-                    question.evaluation_score = float(data.get("score", 0.0))
-                    question.evaluation_feedback = data.get("feedback", "No feedback provided.")
-            await db.commit()
+    # @staticmethod
+    # async def save_text_evaluation(
+    #     db: AsyncSession, 
+    #     session_id: UUID, 
+    #     evaluations: List[Dict[str, Any]], 
+    #     total_score: int,
+    #     user_id:UUID
+    # ) -> Optional[QuizSession]:
+    #     """Saves AI-generated scores and feedback for text-based answers."""
+    #     try:
+    #         stmt = select(QuizSession).where(QuizSession.id == session_id).options(
+    #             selectinload(QuizSession.questions)
+    #         )
+    #         result = await db.execute(stmt)
+    #         session = result.scalar_one_or_none()
+    #         if not session:
+    #             return None
+    #         session.score = total_score
+    #         session.status = "completed"
+    #         eval_map = {UUID(e["question_id"]) if isinstance(e["question_id"], str) else e["question_id"]: e 
+    #                     for e in evaluations}
+    #         for question in session.questions:
+    #             if question.id in eval_map:
+    #                 data = eval_map[question.id]
+    #                 question.evaluation_score = float(data.get("score", 0.0))
+    #                 question.evaluation_feedback = data.get("feedback", "No feedback provided.")
+    #         await db.commit()
 
-            await db.refresh(session, attribute_names=['questions'])
-            return session
+    #         await db.refresh(session, attribute_names=['questions'])
+    #         return session
         
-        except Exception as e:
-            await db.rollback()
-            logger.error(f"Repo Error (save_text_evaluation): {str(e)}")
-            raise e
+    #     except Exception as e:
+    #         await db.rollback()
+    #         logger.error(f"Repo Error (save_text_evaluation): {str(e)}")
+    #         raise e
         
     @staticmethod    
-    async def delete_quiz_session(db:AsyncSession, session_id: UUID, user_id: UUID) -> bool:
+    async def remove_sessions(db:AsyncSession, user_id: UUID, session_ids:List[UUID]) -> bool:
         """Enables the 10-quiz limit management by allowing users to delete sessions."""
         try:
-            stmt = delete(QuizSession).where(
-                QuizSession.id == session_id, 
-                QuizSession.user_id == user_id
-            )
-            result = await db.execute(stmt)
+            
+            query = (delete(QuizSession).where(QuizSession.id.in_(session_ids),QuizSession.user_id == user_id ))
+            await db.execute(query)
             await db.commit()
-            return result.rowcount > 0
+            return True
         except Exception as e:
             await db.rollback()
-            logger.error(f"Error deleting session {session_id}: {str(e)}")
+            logger.error(f"Error deleting session: {str(e)}")
             raise e
         
-    @staticmethod
-    async def save_raw_text_answers(db: AsyncSession, session_id: UUID, user_submissions: List[QuizQuestionRequest], user_id: UUID):
-        """Persists the user's text strings before AI grading begins."""
-        try:
-            for sub in user_submissions:
-                q_id = sub.question_id
-                stmt = (
-                    update(QuizQuestion)
-                    .where(QuizQuestion.quiz_session_id == session_id)
-                    .where(QuizQuestion.id == q_id)
-                    .values(user_answer=sub.user_answer)
-                )
-                await db.execute(stmt)
-            await db.commit()
-        except Exception as e:
-            await db.rollback()
-            raise e
+    # @staticmethod
+    # async def save_raw_text_answers(db: AsyncSession, session_id: UUID, user_submissions: List[QuizQuestionRequest], user_id: UUID):
+    #     """Persists the user's text strings before AI grading begins."""
+    #     try:
+    #         for sub in user_submissions:
+    #             q_id = sub.question_id
+    #             stmt = (
+    #                 update(QuizQuestion)
+    #                 .where(QuizQuestion.quiz_session_id == session_id)
+    #                 .where(QuizQuestion.id == q_id)
+    #                 .values(user_answer=sub.user_answer)
+    #             )
+    #             await db.execute(stmt)
+    #         await db.commit()
+    #     except Exception as e:
+    #         await db.rollback()
+    #         raise e

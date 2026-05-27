@@ -20,7 +20,7 @@ class QuizAIHandler:
             variables = {
                 "context": context_text,
                 "num_questions": params.get("numQuestions"),
-                "quiz_type": params.get("format"),
+                "quiz_type": "mcq",
                 "difficulty": params.get("difficulty")
             }
             

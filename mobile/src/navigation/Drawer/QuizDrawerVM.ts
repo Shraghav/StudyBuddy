@@ -1,13 +1,16 @@
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 import { RootState } from "../../store";
 import {
   createNewQuiz,
+  QuizSession,
   removeQuizzes,
   renameQuiz,
+  setSessions,
+  setSessionsLoading,
   switchQuizSession,
 } from "../../store/slices/QuizSlice";
 import { AppTheme } from "../../utils/themes";
@@ -16,7 +19,7 @@ import { apiClient } from "../../services/api/api_client";
 
 const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
-    drawerContainer: {  backgroundColor: theme.colors.surface },
+    drawerContainer: { backgroundColor: theme.colors.surface, flex: 1 },
     drawerHeader: {
       padding: 20,
       borderBottomWidth: 1,
@@ -55,7 +58,7 @@ const makeStyles = (theme: AppTheme) =>
       fontSize: 14,
       fontWeight: "700",
       color: theme.colors.onSurfaceVariant,
-      marginBottom: 10,
+      marginTop: 5,
     },
     historyItem: {
       padding: 15,
@@ -86,11 +89,21 @@ const makeStyles = (theme: AppTheme) =>
       marginBottom: 20,
       color: theme.colors.onSurface,
     },
-    selectBtn: { backgroundColor: theme.colors.secondary, marginBottom: 15 },
+    selectBtn: { backgroundColor: theme.colors.secondary },
     modalActions: { flexDirection: "row", justifyContent: "space-between" },
-    cancelBtn: { flex: 0.45, backgroundColor: theme.colors.surfaceVariant },
+    cancelBtn: { flex: 0.45 },
     saveBtn: { flex: 0.45 },
     deleteCancelIcon: { height: 25, width: 20 },
+    deleteLoader: { position: "absolute", right: 83 },
+    centeredState: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingVertical: 40,
+    },
+    dontCreateText: { marginBottom: 15, color: theme.colors.onBackground },
+    errorText: { color: theme.colors.error },
+    noSessionText: { color: theme.colors.onSurfaceVariant },
   });
 export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
   // Hooks
@@ -107,35 +120,64 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
   // States for Batch Selection
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
+  const [createQuizLoading, setIsCreateQuizLoading] = useState(false);
+
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+
+  const [error, setError] = useState<String>();
   const theme = useTheme<AppTheme>();
   const styles = makeStyles(theme);
-  // Handling quiz and history
-  const handleNewQuiz = async () => {
-    if (isCreating) return; // Prevent double taps
 
-    setIsCreating(true);
+  const sessionLoading = useSelector(
+    (state: RootState) => state.quiz.isLoading,
+  );
+
+  useEffect(() => {
+    fetchQuizHistory();
+  }, []);
+
+  const fetchQuizHistory = useCallback(async () => {
     try {
-      // 1. Ask FastAPI to create the session shell
-      const response = await apiClient.post("/quiz/setup");
-      const newSessionId = response.data.session_id;
+      dispatch(setSessionsLoading(true));
+      const response = await apiClient.get(`/quiz/`);
+      if (!response.data) {
+        return;
+      }
+      dispatch(setSessionsLoading(false));
+      dispatch(setSessions(response.data));
+    } catch (error) {
+      setError("Failed to Load Quiz history");
+      console.error("Failed to load Quiz history:", error);
+    } finally {
+      dispatch(setSessionsLoading(false));
+    }
+  }, [dispatch]);
 
-      // 2. Initialize Redux with the real UUID
-      dispatch(createNewQuiz(newSessionId));
+  const handleNewQuiz = async () => {
+    if (createQuizLoading) return;
 
-      // 3. Navigate and close drawer
+    try {
+      setIsCreateQuizLoading(true);
+      const title = `Quiz Session ${sessions.length + 1}`;
+      const response = await apiClient.post("/quiz/setup", { title });
+      const rawSession = response.data.session;
+
+      const newSession = {
+        ...rawSession,
+        setupParams: rawSession.setup_params || { format: "" },
+      };
+
+      console.log("New mapped session:", newSession);
+      dispatch(createNewQuiz(newSession));
       props.navigation.navigate("QuizStack", { screen: "QuizSetup" });
       props.navigation.closeDrawer();
     } catch (error) {
       console.error("Error occured in handleNewQuiz:", error);
-      Alert.alert(
-        "Connection Error",
-        "Could not start a new quiz session. Please try again.",
-      );
     } finally {
-      setIsCreating(false);
+      setIsCreateQuizLoading(false);
     }
   };
+
   const handleSelectHistory = (id: string, status: string) => {
     try {
       dispatch(switchQuizSession(id));
@@ -149,10 +191,10 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
     }
   };
   // To show options or not
-  const openOptions = (id: string, title: string) => {
+  const openOptions = (session: QuizSession) => {
     try {
-      setTargetId(id);
-      setQuizName(title);
+      setTargetId(session.id);
+      setQuizName(session.title);
       setIsModalVisible(true);
     } catch (error) {
       console.error("Error occured in openOptions:", error);
@@ -187,13 +229,20 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
   };
 
   // Handling deleting scenario
-  const handleDelete = () => {
+  const handleDelete = async () => {
     try {
+      if (selectedIds.length === 0) return;
+      setIsDeleteLoading(true);
+      await apiClient.delete(`/quiz/sessions/bulk-delete`, {
+        data: selectedIds,
+      });
       dispatch(removeQuizzes(selectedIds));
       setIsSelectionMode(false);
       setSelectedIds([]);
     } catch (error) {
       console.error("Error occured in handleDelete:", error);
+    } finally {
+      setIsDeleteLoading(false);
     }
   };
 
@@ -247,6 +296,11 @@ export const QuizDrawerVM = (props: DrawerContentComponentProps) => {
     handleNewQuiz,
     closeModal,
     renameQuizModal,
+    error,
+    createQuizLoading,
+    isDeleteLoading,
+    theme,
+    sessionLoading,
   };
 };
 export type QuizDrawerType = ReturnType<typeof QuizDrawerVM>;

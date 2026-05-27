@@ -39,7 +39,7 @@ export const makeStyles = (theme: AppTheme) =>
     content: { flex: 1, paddingHorizontal: 20 },
     uploadBtn: {
       padding: 15,
-      backgroundColor: theme.colors.primaryContainer,
+      backgroundColor: theme.colors.surfaceVariant,
       borderRadius: 10,
       alignItems: "center",
       borderWidth: 1,
@@ -102,14 +102,16 @@ export const makeStyles = (theme: AppTheme) =>
     actionIcons: { flexDirection: "row", alignItems: "center" },
     iconBtn: { marginLeft: 20 },
     selectedCard: {
-      borderColor: theme.colors.error,
-      borderWidth: 2,
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
       backgroundColor: theme.colors.errorContainer,
+      color: theme.colors.onBackground,
     },
     unselectedCard: {
-      borderColor: theme.colors.primary,
       borderWidth: 1,
-      backgroundColor: theme.colors.primaryContainer,
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.surfaceVariant,
+      color: theme.colors.onBackground
     },
     selectBtn: { backgroundColor: theme.colors.secondary },
     iconDimensions: { height: 20, width: 20 },
@@ -127,7 +129,7 @@ export const makeStyles = (theme: AppTheme) =>
     uploadDocText: {
       fontSize: 16,
       fontWeight: "600",
-      color: theme.colors.primary,
+      color: theme.colors.onBackground,
     },
   });
 

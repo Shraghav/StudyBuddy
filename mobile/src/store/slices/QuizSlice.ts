@@ -3,9 +3,12 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 export interface Question {
   id: string;
   text: string;
-  type: "mcq" | "text";
+  type: "mcq";
   options?: string[];
   correctAnswer: string;
+  userAnswer?: string;
+  evaluationScore?: number;
+  evaluationFeedback?: string;
 }
 
 export interface QuizSession {
@@ -13,11 +16,11 @@ export interface QuizSession {
   title: string;
   documentId?: string;
   documentName?: string;
-  status: "setup" | "active" | "completed";
+  status: "setup" | "active" | "completed" | "generating" | "error" | "";
   setupParams?: {
     numQuestions: string;
-    difficulty: "Easy" | "Medium" | "Hard";
-    format: "mcq" | "text";
+    difficulty: "Easy" | "Medium" | "Hard" | "";
+    format: "mcq" | "";
     customPrompt: string;
   };
   questions?: Question[];
@@ -29,29 +32,34 @@ export interface QuizSession {
 interface QuizState {
   sessions: QuizSession[];
   currentSessionId: string | null;
+  isLoading: boolean;
 }
 
-const initialState: QuizState = { sessions: [], currentSessionId: null };
+const initialState: QuizState = {
+  sessions: [],
+  currentSessionId: null,
+  isLoading: true,
+};
 
 const quizSlice = createSlice({
   name: "quiz",
   initialState,
   reducers: {
-    createNewQuiz: (state, action: PayloadAction<string>) => {
-      const newQuiz: QuizSession = {
-        id: action.payload,
-        title: `Quiz ${state.sessions.length + 1}`,
-        status: "setup",
-        questions: [],
-        userAnswers: {},
-        score: 0,
-        feedback: "",
-      };
-      state.sessions.unshift(newQuiz);
-      state.currentSessionId = newQuiz.id;
+    createNewQuiz: (state, action: PayloadAction<QuizSession>) => {
+      state.sessions.unshift(action.payload);
+      state.currentSessionId = action.payload.id;
     },
     switchQuizSession: (state, action: PayloadAction<string>) => {
       state.currentSessionId = action.payload;
+    },
+    setQuizStatus: (
+      state,
+      action: PayloadAction<{ id: string; status: QuizSession["status"] }>,
+    ) => {
+      const session = state.sessions.find((s) => s.id === action.payload.id);
+      if (session) {
+        session.status = action.payload.status;
+      }
     },
     updateSetupParams: (
       state,
@@ -60,15 +68,31 @@ const quizSlice = createSlice({
       const session = state.sessions.find(
         (s) => s.id === state.currentSessionId,
       );
-      if (session && session.setupParams)
-        session.setupParams = { ...session.setupParams, ...action.payload };
+      if (session) {
+        session.setupParams = {
+          numQuestions: "",
+          difficulty: "",
+          format: "",
+          customPrompt: "",
+          ...session.setupParams,
+          ...action.payload,
+        };
+      }
     },
-    setDocumentForQuiz: (state, action: PayloadAction<{ id: string }>) => {
+    setDocumentForQuiz: (
+      state,
+      action: PayloadAction<{
+        sessionId: string;
+        docId: string;
+        docName: string;
+      }>,
+    ) => {
       const session = state.sessions.find(
         (s) => s.id === state.currentSessionId,
       );
       if (session) {
-        session.documentId = action.payload.id;
+        session.documentId = action.payload.docId;
+        session.documentName = action.payload.docName;
       }
     },
     startQuiz: (state, action: PayloadAction<Question[]>) => {
@@ -87,31 +111,28 @@ const quizSlice = createSlice({
       const session = state.sessions.find(
         (s) => s.id === state.currentSessionId,
       );
+      if (session && !session.userAnswers) {
+        session.userAnswers = {};
+      }
       if (session && session.userAnswers)
         session.userAnswers[action.payload.questionId] = action.payload.answer;
     },
-    submitQuiz: (state) => {
+    completeQuiz: (
+      state,
+      action: PayloadAction<{
+        score: number;
+        feedback: string;
+        questions: Question[];
+      }>,
+    ) => {
       const session = state.sessions.find(
         (s) => s.id === state.currentSessionId,
       );
-      if (session && session.questions) {
+      if (session) {
         session.status = "completed";
-        const mcqQuestions = session.questions.filter((q) => q.type === "mcq");
-        let correctCount = 0;
-
-        mcqQuestions.forEach((q) => {
-          if (
-            session.userAnswers &&
-            session.userAnswers[q.id] === q.correctAnswer
-          )
-            correctCount++;
-        });
-
-        session.score = correctCount;
-        session.feedback =
-          mcqQuestions.length > 0
-            ? `You got ${correctCount} out of ${mcqQuestions.length} multiple choice questions right. AI is analyzing your text responses...`
-            : "Quiz submitted! AI is now grading your long-form answers.";
+        session.score = action.payload.score;
+        session.feedback = action.payload.feedback;
+        session.questions = action.payload.questions; // Overwrite with graded data
       }
     },
     renameQuiz: (
@@ -125,12 +146,41 @@ const quizSlice = createSlice({
       state.sessions = state.sessions.filter(
         (s) => !action.payload.includes(s.id),
       );
-      // If we delete the active quiz, reset currentId
       if (
         state.currentSessionId &&
         action.payload.includes(state.currentSessionId)
       ) {
         state.currentSessionId = null;
+      }
+    },
+    setSessionsLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+    setSessions: (state, action: PayloadAction<QuizSession[]>) => {
+      const backendSessions = action.payload.filter(
+        (s) => s.id !== null && s.id !== undefined,
+      );
+
+      state.sessions = backendSessions.map((incoming) => {
+        const localMatch = state.sessions.find((s) => s.id === incoming.id);
+
+        return {
+          ...incoming,
+          // If the local session has questions/answers, retain them!
+          questions: localMatch?.questions || incoming.questions || [],
+          userAnswers: localMatch?.userAnswers || incoming.userAnswers || {},
+          setupParams: localMatch?.setupParams || incoming.setupParams,
+          score:
+            incoming.score !== undefined ? incoming.score : localMatch?.score,
+          feedback:
+            incoming.feedback !== undefined
+              ? incoming.feedback
+              : localMatch?.feedback,
+        };
+      });
+
+      if (backendSessions.length > 0 && !state.currentSessionId) {
+        state.currentSessionId = backendSessions[0].id;
       }
     },
   },
@@ -143,8 +193,11 @@ export const {
   setDocumentForQuiz,
   startQuiz,
   answerQuestion,
-  submitQuiz,
+  completeQuiz,
   renameQuiz,
   removeQuizzes,
+  setSessionsLoading,
+  setSessions,
+  setQuizStatus,
 } = quizSlice.actions;
 export default quizSlice.reducer;

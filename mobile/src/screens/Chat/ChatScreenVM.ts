@@ -98,7 +98,6 @@ export const makeStyles = (theme: AppTheme) =>
       color: theme.colors.onSurfaceVariant,
       fontSize: 16,
       lineHeight: 22,
-      // fontWeight: "bold",
     },
     inputContainer: {
       flexDirection: "row",
@@ -208,11 +207,14 @@ export const ChatScreenVM = () => {
   const availableDocs = useSelector((state: RootState) => state.files.files);
   const [inputText, setInputText] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [docLoading, setDocIsLoading] = useState(false);
   const [dots, setDots] = useState(".");
-
+  const [submittingDocId, setSubmittingDocId] = useState<string | null>(null);
   const theme = useTheme<AppTheme>();
   const styles = makeStyles(theme);
+
+  const keyExtractor = useCallback((item: any, index: number) => {
+    return item.id ? `${item.id}-${index}` : `msg-${index}`;
+  }, []);
 
   const attachedFile = useSelector((state: RootState) =>
     state.files.files.find((f) => f.id === currentSession?.attachedDocId),
@@ -237,7 +239,7 @@ export const ChatScreenVM = () => {
   const selectDocForChat = useCallback(
     async (doc: FileDetail) => {
       try {
-        setDocIsLoading(true);
+        setSubmittingDocId(doc.id);
         if (!currentSessionId) {
           console.error("No session available to attach");
           return;
@@ -253,7 +255,7 @@ export const ChatScreenVM = () => {
       } catch (error) {
         console.error("Attachment failed:", error);
       } finally {
-        setDocIsLoading(false);
+        setSubmittingDocId(null);
         setIsDocModalVisible(false);
       }
     },
@@ -315,11 +317,9 @@ export const ChatScreenVM = () => {
       setIsChatLoading(true);
       const token = await SecureStore.getItemAsync("auth_token");
 
-      // 2. Dynamically pull the baseURL from your apiClient so you only have to update it in one place
-      const baseUrl = apiClient.defaults.baseURL || "http://192.168.31.74:8000";
+      const baseUrl = apiClient.defaults.baseURL;
       const url = `${baseUrl}/chat/${currentSessionId}/${attachedDoc.id}`;
 
-      // 3. Set up the EventSource with your token in the headers
       const es = new EventSource(url, {
         method: "POST",
         headers: {
@@ -329,7 +329,6 @@ export const ChatScreenVM = () => {
         body: JSON.stringify({ question: userText }),
       });
 
-      // 4. Listen for chunks
       es.addEventListener("message", (event) => {
         if (event.data) {
           if (isChatLoading) {
@@ -416,6 +415,7 @@ export const ChatScreenVM = () => {
     attachedFile,
     theme,
     sessionLoading,
-    docLoading,
+    submittingDocId,
+    keyExtractor
   };
 };

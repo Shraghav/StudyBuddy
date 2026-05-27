@@ -22,7 +22,8 @@ else:
 
 # import os
 
-# from dotenv import load_dotenv
-# load_dotenv()
-# DATABASE_URL =  os.getenv("DATABASE_URL")
-# print("Key:", DATABASE_URL)
+from dotenv import load_dotenv
+import os
+load_dotenv()
+DATABASE_URL =  os.getenv("DATABASE_URL")
+print("Key:", DATABASE_URL)

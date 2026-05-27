@@ -3,12 +3,12 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from dto.enums import QuizStatus
-
+class SetupQuizRequest(BaseModel):
+    title:str
 # Quiz Generation  request and response
 class QuizGenerationRequestDTO(BaseModel):
     numQuestions: int = Field(..., gt=0, le=25)
     difficulty: Literal["Easy", "Medium", "Hard"]
-    format: Literal["mcq","text"]
     customPrompt: Optional[str] = Field(default="", max_length=500)
 
 class QuizGenerationResponseDTO(BaseModel):
@@ -16,9 +16,9 @@ class QuizGenerationResponseDTO(BaseModel):
     session_title:str
 
 # Quiz Setup and delete parameters
-class QuizSetUPAndDeleteResponseDTO(BaseModel):
+class QuizDeleteResponseDTO(BaseModel):
     message:str   
-    session_id:UUID
+    session_ids:List[UUID]
 
 #Quiz sidebar
 class QuizSessionMinimalDTO(BaseModel):
@@ -69,8 +69,9 @@ class QuizQuestionRequest(BaseModel):
 
 # Quiz submit response (overall)
 class QuizSubmitResponseDTO(BaseModel):
-    message:str
-    status:str
+    message: str
+    status: str
+    score: int
 
 class QuizSessionRenameRequest(BaseModel):
     title: str

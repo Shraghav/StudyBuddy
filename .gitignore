@@ -38,12 +38,10 @@ yarn-error.*
 
 # generated native folders
 /ios
-/android
+android
 __pycache__/
 
 .env
-keys- web.json
-keys- android.json
 
 alembic.ini
 /alembic

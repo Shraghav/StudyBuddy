@@ -62,7 +62,7 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
         <DrawerContentScrollView {...props} contentContainerStyle={[styles.drawerContainer, { paddingTop: insets.top }]}>
 
             <View style={styles.drawerHeader}>
-                <Text style={styles.logoText}>StudyBuddy</Text>
+                <Text style={styles.logoText}>Study Buddy Chat</Text>
             </View>
 
             {!vm.isSelectionMode && (
@@ -120,7 +120,8 @@ const CustomDrawerContent = (props: CustomDrawerProps) => {
                         ))
                     ) : (
                         <View style={styles.centeredState}>
-                            <Text style={styles.noSessionText}>No sessions found....</Text>
+                            <Text style={styles.noSessionText}>No sessions found</Text>
+                            <Text style={styles.noSessionText}>Create a new chat with the above button</Text>
                         </View>
                     )}
                 </ScrollView>

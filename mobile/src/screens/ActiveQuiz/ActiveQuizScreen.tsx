@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomButton } from '../../components/CustomButton/CustomButton';
 import { ActiveQuizVM } from './ActiveQuizVM';
 import { TextInput } from 'react-native-paper';
+import { Question } from '../../store/slices/QuizSlice';
+import DrawerMenu from '../../components/Drawer/Drawer';
 
 export const ActiveQuizScreen = () => {
     const vm = ActiveQuizVM();
@@ -13,33 +15,36 @@ export const ActiveQuizScreen = () => {
     if (!vm.currentSession) return null;
 
     const renderQuestion = ({ item, index }: any) => {
-        const userAnswer = vm.currentSession!.userAnswers[item.id];
-
+        const userAnswers = vm.currentSession?.userAnswers || {};
         return (
             <View style={styles.questionCard}>
-                <Text style={styles.questionText}>{index + 1}. {item.text}</Text>
+                <Text style={styles.questionText}>
+                    {index + 1}. {item.text}
+                </Text>
 
-                {item.type === 'mcq' ? (
-                    item.options.map((opt: string) => (
+                {Object.entries(item.options).map(([optionKey, optionValue]) => {
+                    const isSelected = userAnswers[item.id] === optionKey;
+                    return (
                         <TouchableOpacity
-                            key={opt}
-                            style={[styles.optionBtn, userAnswer === opt && styles.optionSelected]}
-                            onPress={() => vm.answerQuestionAI(item.id, opt)}
+                            key={optionKey}
+                            style={[
+                                styles.optionBtn,
+                                isSelected && styles.optionSelected,
+                            ]}
+                            onPress={() => vm.answerQuestionAI(item.id, optionKey)}
                         >
-                            <Text style={[styles.optionText, userAnswer === opt && styles.optionTextSelected]}>{opt}</Text>
+                            <Text
+                                style={[
+                                    styles.optionText,
+                                    isSelected && styles.optionTextSelected,
+                                ]}
+                            >
+                                {optionKey}. {String(optionValue)}
+                            </Text>
                         </TouchableOpacity>
-                    ))
-                ) : (
-                    <TextInput
-                        mode="outlined"
-                        label="Your Answer"
-                        value={userAnswer || ''}
-                        onChangeText={(val) => vm.answerQuestionAI(item.id, val)}
-                        multiline
-                        outlineColor="#C0C0C0"
-                        activeOutlineColor="#7393B3"
-                    />
-                )}
+                    );
+                })}
+
             </View>
         );
     };
@@ -49,11 +54,15 @@ export const ActiveQuizScreen = () => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20} style={[styles.container, { paddingTop: insets.top - 10 }]}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Study Buddy Quiz</Text>
+                <DrawerMenu />
+                {
+                    vm.currentSession && vm.currentSession.status == "active" &&
+                    <Text style={styles.headerTitle}>{vm.currentSession?.title}</Text>
+                }
             </View>
 
             <FlatList
-                data={vm.currentSession.questions}
+                data={vm.currentSession.questions || []}
                 keyExtractor={item => item.id}
                 renderItem={renderQuestion}
                 contentContainerStyle={styles.flatListConatiner}
@@ -64,6 +73,7 @@ export const ActiveQuizScreen = () => {
                     title="Submit Answers"
                     disabled={!vm.isAllAnswered()}
                     onPress={vm.handleSubmission}
+                    loading={vm.isSubmitting}
                 />
             </View>
         </KeyboardAvoidingView>

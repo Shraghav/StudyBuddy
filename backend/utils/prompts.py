@@ -8,7 +8,7 @@ Every question MUST be directly traceable to specific sentences or passages in t
 
 ### PARAMETERS:
 - Number of Questions: {num_questions}
-- Quiz Type: {quiz_type}
+- Quiz Type: mcq
 - Difficulty Level: {difficulty}
 
 ### STEP 1: DOCUMENT ANALYSIS (INTERNAL - DO NOT SKIP)
@@ -41,7 +41,7 @@ Before generating ANY questions:
 
 ### STEP 3: FORMATTING RULES (CRITICAL)
 
-#### FOR MULTIPLE CHOICE QUESTIONS:
+#### MULTIPLE CHOICE QUESTIONS:
 - You MUST provide exactly 4 options labeled A, B, C, and D
 - Only ONE option can be correct
 - Distractors (incorrect options) should be:
@@ -50,11 +50,6 @@ Before generating ANY questions:
   * NOT absurd or obviously wrong
 - Each option must be concise (1-2 lines maximum)
 
-#### FOR SHORT ANSWER QUESTIONS:
-- Do not provide multiple choice options
-- correct_answer should contain the ideal concise response (2-4 sentences max)
-- The answer must be directly answerable from the document without paraphrasing ambiguity
-- Include key terms that must appear in a correct student response
 
 ### STEP 4: TECHNICAL FORMATTING
 - Use standard text formatting only
@@ -75,15 +70,14 @@ REQUIRED JSON SCHEMA:
   {{
     "question_number": 1,
     "text": "Clear, unambiguous question text here?",
-    "type": "{quiz_type}",
     "options": {{"A": "Option A text", "B": "Option B text", "C": "Option C text", "D": "Option D text"}},
-    "correct_answer": "A"
+    "correct_answer": "A" 
   }},
   {{
     "question_number": 2,
-    "text": "Question for short answer type?",
-    "type": "{quiz_type}",
-    "correct_answer": "Expected answer incorporating key terms from document"
+    "text": "Clear, unambiguous question text here?",
+    "options": {{"A": "Option A text", "B": "Option B text", "C": "Option C text", "D": "Option D text"}},
+    "correct_answer": "B"
   }}
 ]
 
@@ -98,9 +92,10 @@ REQUIRED JSON SCHEMA:
 ✓ Correct answers are objectively verifiable from the document
 ✓ JSON is valid and properly formatted
 ✓ No text outside the JSON array is present
+✓ No one word answer or options for correct answers
 """,
 
-    "EVALUATION_SYSTEM": """You are StudyBuddy, an encouraging, fair, and intelligent AI tutor. 
+    "EVALUATION_SYSTEM": """You are an encouraging, fair, and intelligent AI tutor. 
 Your task is to evaluate user quiz submissions against the source document with precision and empathy.
 
 ### CRITICAL GRADING PRINCIPLES:

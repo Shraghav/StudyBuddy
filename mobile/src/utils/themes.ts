@@ -38,7 +38,7 @@ export const lightTheme = {
     onBackground: "rgb(31, 27, 22)",
     surface: "rgb(243, 237, 235)",
     onSurface: "rgb(65, 55, 42)",
-    surfaceVariant: "rgb(239, 224, 207)",
+    surfaceVariant: "rgb(236, 230, 223)",
     onSurfaceVariant: "rgb(79, 69, 57)",
     outline: "rgb(129, 117, 103)",
     outlineVariant: "rgb(211, 196, 180)",
@@ -49,7 +49,7 @@ export const lightTheme = {
     inversePrimary: "rgb(255, 186, 75)",
     elevation: {
       level0: "transparent",
-      level1: "rgb(249, 243, 242)",
+      level1: "rgb(223, 209, 206)",
       level2: "rgb(245, 238, 235)",
       level3: "rgb(241, 233, 227)",
       level4: "rgb(240, 231, 224)",
@@ -58,6 +58,10 @@ export const lightTheme = {
     surfaceDisabled: "rgba(31, 27, 22, 0.12)",
     onSurfaceDisabled: "rgba(31, 27, 22, 0.38)",
     backdrop: "rgba(56, 47, 36, 0.4)",
+    border: "rgb(225, 232, 237)", 
+    success: "rgb(1, 94, 83)", 
+    successContainer: "rgb(224, 242, 241)",
+    onSuccessContainer: "rgb(0, 77, 64)",
   },
 };
 
@@ -66,7 +70,7 @@ export const darkTheme = {
   ...MD3DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: "rgb(255, 186, 75)",
+    primary: "rgb(254, 207, 131)",
     onPrimary: "rgb(68, 43, 0)",
     primaryContainer: "rgb(98, 64, 0)",
     onPrimaryContainer: "rgb(255, 221, 178)",
@@ -106,6 +110,10 @@ export const darkTheme = {
     surfaceDisabled: "rgba(234, 225, 217, 0.12)",
     onSurfaceDisabled: "rgba(234, 225, 217, 0.38)",
     backdrop: "rgba(56, 47, 36, 0.4)",
+    border: "rgb(64, 72, 76)",
+    success: "rgb(128, 203, 196)",
+    successContainer: "rgb(0, 77, 64)",
+    onSuccessContainer: "rgb(224, 242, 241)",
   },
 };
 

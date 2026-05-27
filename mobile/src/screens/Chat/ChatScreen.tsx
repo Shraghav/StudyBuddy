@@ -38,13 +38,16 @@ export const ChatScreen = () => {
     );
   }, [styles, vm.dots]);
 
-  const renderDocItem: ListRenderItem<FileDetail> = useCallback(({ item }) => (
-    <CustomButton
-      viewstyle={styles.docItem}
-      onPress={() => vm.selectDocForChat(item)}
-      title={"📄 " + item.name} loading={vm.docLoading}
-      textStyle={styles.docItemText} />
-  ), [styles, vm.selectDocForChat]);
+  const renderDocItem: ListRenderItem<FileDetail> = useCallback(({ item }) => {
+    const isThisItemLoading = vm.submittingDocId === item.id;
+    return (
+      <CustomButton
+        viewstyle={styles.docItem}
+        onPress={() => vm.selectDocForChat(item)}
+        title={"📄 " + item.name} loading={isThisItemLoading}
+        textStyle={styles.docItemText} />
+    )
+  }, [styles, vm.selectDocForChat, vm.submittingDocId]);
 
   const renderDocModalFooter = useCallback(() => {
     if (!vm.isChatLoading) return null;
@@ -62,10 +65,6 @@ export const ChatScreen = () => {
       console.error("Error occured in handleContnt Size Change:", error)
     }
   }, [vm.flatListRef]);
-
-  const keyExtractor = useCallback((item: any, index: number) => {
-    return item.id ? `${item.id}-${index}` : `msg-${index}`;
-  }, []);
 
   return (
     <View style={[styles.overallContainer, { paddingTop: insets.top - 10 }]}>
@@ -101,7 +100,7 @@ export const ChatScreen = () => {
                   </Text>
                 </View>
                 <CustomButton
-                  onPress={vm.openDocModal} 
+                  onPress={vm.openDocModal}
                   viewstyle={styles.attachBtn}
                   textStyle={styles.attachBtnText}
                   title='+ Attach PDF' />
@@ -110,7 +109,7 @@ export const ChatScreen = () => {
               <FlatList
                 ref={vm.flatListRef}
                 data={vm.currentSession?.messages}
-                keyExtractor={keyExtractor}
+                keyExtractor={vm.keyExtractor}
                 contentContainerStyle={styles.messageList}
                 onContentSizeChange={handleContentSizeChange}
                 renderItem={renderMessageItem}

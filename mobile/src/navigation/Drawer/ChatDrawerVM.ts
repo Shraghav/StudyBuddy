@@ -48,10 +48,10 @@ const makeStyles = (theme: AppTheme) =>
       marginHorizontal: 10,
       marginBottom: 5,
       borderColor: "transparent",
+      borderRadius: 10,
     },
     historyItemActive: {
-      borderWidth: 1,
-      borderBottomColor: theme.colors.outlineVariant,
+      backgroundColor: theme.colors.primaryContainer,
     },
     selectedItem: {
       borderWidth: 2,
@@ -59,10 +59,13 @@ const makeStyles = (theme: AppTheme) =>
       backgroundColor: theme.colors.errorContainer,
       borderRadius: 15,
     },
-    historyText: { fontSize: 16, color: theme.colors.onSurface },
+    historyText: {
+      fontSize: 16,
+      color: theme.colors.onSurface,
+    },
     historyTextActive: {
-      fontWeight: "bold",
       color: theme.colors.onPrimaryContainer,
+      fontWeight: "700",
     },
     modalOverlay: {
       flex: 1,
@@ -82,7 +85,6 @@ const makeStyles = (theme: AppTheme) =>
       color: theme.colors.onSurface,
     },
     selectChatContainer: {
-      // marginBottom: 15,
       backgroundColor: theme.colors.secondary,
     },
     closeModalContainer: {
@@ -131,7 +133,7 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
   const [error, setError] = useState<String>();
   const theme = useTheme<AppTheme>();
   const styles = makeStyles(theme);
-  // To fetch all the chats
+ 
   useEffect(() => {
     fetchChatHistory();
   }, []);
@@ -151,7 +153,7 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       console.error("Failed to load chat history:", error);
     } finally {
       setError("");
-      dispatch(setSessionsLoading(false)); // Stop loader whether it succeeds or fails
+      dispatch(setSessionsLoading(false));
     }
   }, [dispatch]);
 
@@ -244,7 +246,7 @@ export const ChatDrawerVM = (props: DrawerContentComponentProps) => {
       setIsSelectionMode(false);
       setSelectedIds([]);
     } catch (error) {
-      console.error("Error in createNewChat:", error);
+      console.error("Error in cancel selection:", error);
     }
   }, []);
 

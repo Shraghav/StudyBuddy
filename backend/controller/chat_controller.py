@@ -115,7 +115,7 @@ async def create_new_session(
 
 @router.delete("/sessions/bulk-delete")
 async def delete_chat_sessions(
-    doc_ids:List[UUID], 
+    session_ids:List[UUID], 
     user_id: UUID = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session)
 ):
@@ -131,7 +131,7 @@ async def delete_chat_sessions(
         dict: A dictionary containing the status and result of the deletion process.
     """
     try:   
-        result = await ChatService.remove_sessions(db, user_id,doc_ids )
+        result = await ChatService.remove_sessions(db, user_id,session_ids )
         return {"status": "success", "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

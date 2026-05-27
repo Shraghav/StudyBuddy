@@ -17,7 +17,7 @@ from pdf2image import convert_from_path
 from rapidocr_onnxruntime import RapidOCR
 
 logger = logging.getLogger(__name__)
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./temp_uploads")
+UPLOAD_DIR = "./temp_uploads"
 engine = RapidOCR()
 async def _extract_text_from_pdf_url(file_url: str, original_filename: str = "document.pdf") -> str:
     """Downloads the file, extracts clean text, and guarantees local deletion."""
@@ -81,21 +81,29 @@ async def generate_quiz_task(session_id: UUID, user_id:UUID):
             if not questions_data:
                 raise ValueError("AI failed to generate any questions.")
 
-            print("Question Data in background:",questions_data)
             await QuizRepository.save_generated_questions(db, session_id, questions_data, user_id)
             logger.info(f"Successfully generated quiz for session {session_id}")
 
         except ValueError as ve:
+            await db.rollback()
             logger.error(f"Validation Error (generate_quiz): {str(ve)}")
-            await QuizRepository.update_quiz_data(db, session_id,user_id, QuizStatus.error)
+            await QuizRepository.update_quiz_data(
+                db=db, user_id=user_id, session_id=session_id, status=QuizStatus.error
+            )
             
         except SQLAlchemyError as sqle:
+            await db.rollback()
             logger.error(f"Database Error (generate_quiz): {str(sqle)}")
-            await QuizRepository.update_quiz_data(db, session_id, user_id, QuizStatus.error)
+            await QuizRepository.update_quiz_data(
+                db=db, user_id=user_id, session_id=session_id, status=QuizStatus.error
+            )
 
         except Exception as e:
+            await db.rollback()
             logger.error(f"Unexpected Error (generate_quiz): {str(e)}")
-            await QuizRepository.update_quiz_data(db, session_id, user_id, QuizStatus.error)
+            await QuizRepository.update_quiz_data(
+                db=db, user_id=user_id, session_id=session_id, status=QuizStatus.error
+            )
 
 async def grade_text_quiz_task(session_id: UUID, user_submissions: List[QuizQuestionRequest], user_id:UUID):
     async with async_session_maker() as db:
@@ -148,13 +156,22 @@ async def grade_text_quiz_task(session_id: UUID, user_submissions: List[QuizQues
             logger.info(f"Successfully graded text quiz for session {session_id}")
 
         except ValueError as ve:
+            await db.rollback()
             logger.error(f"Validation Error (grade_text): {str(ve)}")
-            await QuizRepository.update_quiz_data(db, session_id,user_id,QuizStatus.error)
+            await QuizRepository.update_quiz_data(
+                db=db, user_id=user_id, session_id=session_id, status=QuizStatus.error
+            )
 
         except SQLAlchemyError as sqle:
+            await db.rollback()
             logger.error(f"Database Error (grade_text): {str(sqle)}")
-            await QuizRepository.update_quiz_data(db, session_id,user_id, QuizStatus.error)
+            await QuizRepository.update_quiz_data(
+                db=db, user_id=user_id, session_id=session_id, status=QuizStatus.error
+            )
 
         except Exception as e:
+            await db.rollback()
             logger.error(f"Unexpected Error (grade_text): {str(e)}")
-            await QuizRepository.update_quiz_data(db, session_id,user_id, QuizStatus.error)
+            await QuizRepository.update_quiz_data(
+                db=db, user_id=user_id, session_id=session_id, status=QuizStatus.error
+            )

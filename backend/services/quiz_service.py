@@ -2,8 +2,10 @@ import logging
 from typing import  List
 from uuid import UUID
 
+from pydantic import TypeAdapter
+
 from dto.enums import QuizStatus
-from dto.quiz_dto import  QuizGenerationRequestDTO, QuizGenerationResponseDTO, QuizQuestionRequest, QuizSessionActiveDTO, QuizSessionCompletedDTO, QuizSessionMinimalDTO
+from dto.quiz_dto import  QuizGenerationRequestDTO, QuizGenerationResponseDTO, QuizQuestionRequest, QuizSessionActiveDTO, QuizSessionCompletedDTO, QuizSessionMinimalDTO, SetupQuizRequest
 from fastapi import BackgroundTasks, HTTPException
 from repository.quiz_repository import QuizRepository
 from services.quiz_engine.background_tasks import (generate_quiz_task,
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 class QuizService:
 
     @staticmethod
-    async def initialize_quiz(db: AsyncSession, user_id: UUID):
+    async def initialize_quiz(db: AsyncSession, user_id: UUID, quiz_title:SetupQuizRequest):
         try:
             current_count = await QuizRepository.get_user_quiz_count(db, user_id)
             if current_count >= 10:
@@ -23,11 +25,14 @@ class QuizService:
                     status_code=400, 
                     detail="Limit reached. Please delete an old quiz to create a new one."
                 )
-            title = f"Quiz {current_count}"
-            response = await QuizRepository.create_quiz_session(db, user_id, title)
-            return {"message":"Quiz is initialized successfully", "session_id":response.id}
 
-        except HTTPException:
+            response = await QuizRepository.create_quiz_session(db, user_id, quiz_title.title)
+
+            print("Quiz service response:", response)
+            return response
+
+        except HTTPException as e:
+            print("Error in service:",e)
             raise  
         except Exception as e:
             logger.error(f"Service Error (initialize_quiz): {str(e)}")
@@ -63,11 +68,10 @@ class QuizService:
                         "is_correct": is_correct
                     })
 
-            total_q = len(session.questions)
-            score_percentage = int((correct_count / total_q) * 100) if total_q > 0 else 0
+            score_to_save = correct_count
 
-            await QuizRepository.save_mcq_evaluation(db, session, evaluated_data, score_percentage)
-            return {"message": "Answers submitted. AI is grading your responses.", "status": "grading"}
+            response = await QuizRepository.save_mcq_evaluation(db, session, evaluated_data, score_to_save)
+            return response
         
         except HTTPException:
             raise
@@ -86,19 +90,15 @@ class QuizService:
             if session.status not in [QuizStatus.active, QuizStatus.completed]:
                 return QuizSessionMinimalDTO.model_validate(session)
 
-            is_mcq = session.setup_params.get("format") == "mcq" if session.setup_params else False
-
-            print("Is mcq:", is_mcq)
             questions_data = []
             for q in session.questions:
                 q_dict = {
                     "id": q.id, 
                     "text": q.text, 
-                    "options": q.options if is_mcq else None,
+                    "options": q.options,
                     "user_answer": q.user_answer, 
                     "correct_answer": q.correct_answer,
                     "evaluation_score": q.evaluation_score, 
-                    "evaluation_feedback": q.evaluation_feedback
                 }
                 questions_data.append(q_dict)
 
@@ -123,9 +123,12 @@ class QuizService:
     @staticmethod
     async def get_sidebar_history(db: AsyncSession, user_id: UUID):
         try:
-            return await QuizRepository.get_all_user_quizzes(db, user_id)
-        except HTTPException:
-            raise
+            raw_quizzes = await QuizRepository.get_all_user_quizzes(db, user_id)
+            adapter = TypeAdapter(List[QuizSessionMinimalDTO])
+            validated_history = adapter.validate_python(raw_quizzes)
+            return validated_history
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
         except Exception as e:
             logger.error(f"Service Error (sidebar): {str(e)}")
             raise HTTPException(status_code=500, detail="Could not load quiz history.")
@@ -145,19 +148,20 @@ class QuizService:
         """
         try:
             session = await QuizRepository.update_session_document(db,user_id, session_id, document_id)
+            print("In repo update:", session)
             return {"Updated document": session}
         except Exception as e:
             print(f"Error in ChatService.create_session: {e}")
             raise e
     
     @staticmethod
-    async def delete_quiz(db: AsyncSession, session_id: UUID, user_id: UUID):
+    async def delete_quizes(db: AsyncSession, user_id: UUID, session_ids:List[UUID]):
         try:
-            success = await QuizRepository.delete_quiz_session(db, session_id, user_id)
+            success = await QuizRepository.remove_sessions(db,  user_id, session_ids)
             if not success:
                 raise HTTPException(status_code=404, detail="Quiz not found or unauthorized.")
             
-            return {"message":"Quiz deleted successfully", "session_id":session_id}
+            return session_ids
         
         except HTTPException:
             raise
@@ -173,7 +177,7 @@ class QuizService:
         Flips status to 'generating' and starts the Grok background worker.
         """
         try:
-            session = await QuizRepository.update_quiz_data(db, session_id,user_id,QuizStatus.generating, quiz_params )
+            session = await QuizRepository.update_quiz_data(db, user_id,session_id, QuizStatus.generating, quiz_params )
             if not session:
                 raise HTTPException(status_code=404, detail="Session not found.")
             
@@ -213,32 +217,32 @@ class QuizService:
             print(f"Error in ChatService.update_session_title: {e}")
             raise e
 
-    @staticmethod
-    async def submit_text_quiz(db: AsyncSession, session_id: UUID, user_submissions: List[QuizQuestionRequest], background_tasks: BackgroundTasks, user_id:UUID):
-        """
-        Handles Text submissions. 
-        Saves raw answers and triggers the AI Grader background task.
-        """
-        try:
-            session = await QuizRepository.get_quiz_session_by_id(db, session_id, user_id)
-            if not session:
-                raise HTTPException(status_code=404, detail="Quiz session not found.")
+    # @staticmethod
+    # async def submit_text_quiz(db: AsyncSession, session_id: UUID, user_submissions: List[QuizQuestionRequest], background_tasks: BackgroundTasks, user_id:UUID):
+    #     """
+    #     Handles Text submissions. 
+    #     Saves raw answers and triggers the AI Grader background task.
+    #     """
+    #     try:
+    #         session = await QuizRepository.get_quiz_session_by_id(db, session_id, user_id)
+    #         if not session:
+    #             raise HTTPException(status_code=404, detail="Quiz session not found.")
             
-            if session.status == "completed":
-                raise HTTPException(status_code=400, detail="Quiz already submitted.")
-            if session.status == "grading":
-                raise HTTPException(status_code=400, detail="Previous quiz is being graded.")
+    #         if session.status == "completed":
+    #             raise HTTPException(status_code=400, detail="Quiz already submitted.")
+    #         if session.status == "grading":
+    #             raise HTTPException(status_code=400, detail="Previous quiz is being graded.")
 
-            await QuizRepository.save_raw_text_answers(db, session_id, user_submissions, user_id)
+    #         await QuizRepository.save_raw_text_answers(db, session_id, user_submissions, user_id)
             
-            await QuizRepository.update_quiz_data(db, session_id, user_id, QuizStatus.grading)
-            background_tasks.add_task(grade_text_quiz_task, session_id, user_submissions, user_id)
+    #         await QuizRepository.update_quiz_data(db,user_id,session_id, QuizStatus.grading)
+    #         background_tasks.add_task(grade_text_quiz_task, session_id, user_submissions, user_id)
 
-            return {"message": "Answers submitted. AI is grading your responses.", "status": "grading"}
+    #         return {"message": "Answers submitted. AI is grading your responses.", "status": "grading"}
 
-        except HTTPException:
-            raise
+    #     except HTTPException:
+    #         raise
 
-        except Exception as e:
-            logger.error(f"Service Error (submit_text): {str(e)}")
-            raise HTTPException(status_code=500, detail="Failed to submit text answers.")
+    #     except Exception as e:
+    #         logger.error(f"Service Error (submit_text): {str(e)}")
+    #         raise HTTPException(status_code=500, detail="Failed to submit text answers.")
