@@ -14,5 +14,4 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - EMBEDDING_KEY=${EMBEDDING_KEY}
       - MODAL_NAME=${MODAL_NAME}
-      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload

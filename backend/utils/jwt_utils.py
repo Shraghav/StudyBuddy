@@ -9,7 +9,6 @@ from utils.supabase_utils import supabase
 load_dotenv()
 security = HTTPBearer()
 
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Validates the Supabase JWT token and extracts the user_id.
