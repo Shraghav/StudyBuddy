@@ -21,7 +21,16 @@ async def setup_quiz(
     db: AsyncSession = Depends(get_async_session), 
     user_id=Depends(get_current_user),
 ):
-    """Creates the initial shell for the quiz and enforces the 10-quiz limit."""
+    """Creates the initial shell for the quiz and enforces the 10-quiz limit.
+
+    Args:
+        title (SetupQuizRequest): DTO containing the initial setup criteria for the quiz.
+        db (AsyncSession): Asynchronous database session dependency.
+        user_id (Any): The unique identifier of the authenticated user.
+
+    Returns:
+        dict: A dictionary wrapping the newly created session information.
+    """
     try:
         user_id_uuid = UUID(user_id)
         session = await QuizService.initialize_quiz(
@@ -30,16 +39,15 @@ async def setup_quiz(
             quiz_title=title
         )
 
-        print("session id:", session)
         return {"session":session}
     
     except HTTPException as e:
-        print("Error in controller:",e)
-        raise HTTPException(status_code=400, detail=e.detail)
+        logger.error(f"HTTP Exception in setup: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     except Exception as e:
-        logger.error(f"Controller Error (setup): {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to initialize quiz setup.")
+        logger.error(f"Exception occured in setup: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/sessions/bulk-delete", response_model=QuizDeleteResponseDTO)
 async def delete_quizes(
@@ -47,15 +55,27 @@ async def delete_quizes(
     db: AsyncSession = Depends(get_async_session), 
     user_id=Depends(get_current_user)
 ) :
-    """Deletes a quiz, freeing up space against the 10-quiz limit."""
+    """Deletes a batch of quiz sessions, freeing up space against the 10-quiz limit.
+
+    Args:
+        session_ids (List[UUID]): Collection of unique session identifiers to remove.
+        db (AsyncSession): Asynchronous database session dependency.
+        user_id (Any): The unique identifier of the authenticated user
+
+    Returns:
+        dict: Confirmation payload containing success status and deleted session IDs.
+    """
     try:
         response_data = await QuizService.delete_quizes(db, user_id, session_ids)
         return {"message":"success", "session_ids":response_data}
-    except HTTPException:
-        raise
+    
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in delete quizes: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    
     except Exception as e:
-        logger.error(f"Controller Error (delete): {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to delete quiz.")
+        logger.error(f"Exception occured in delete quiz session: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
     
 @router.patch("/{session_id}/attach/{document_id}")
 async def attach_document_to_session(
@@ -64,26 +84,27 @@ async def attach_document_to_session(
     user_id: UUID = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session)
 ):
-    """
-    Links an existing document to an active chat session.
+    """Links an existing document context to an active quiz session.
 
     Args:
-        session_id (UUID): The unique identifier of the chat session.
-        document_id (UUID): The unique identifier of the document to be attached.
-        user_id (UUID): The unique identifier of the user
-        db (AsyncSession): Database session dependency.
+        session_id (UUID): The unique identifier of the target quiz session.
+        document_id (UUID): The unique identifier of the document reference to link.
+        user_id (UUID): The unique identifier of the authenticated user.
+        db (AsyncSession): Asynchronous database session dependency.
 
     Returns:
-        dict: A dictionary confirming the success of the link operation.
+        dict: Confirmation payload indicating execution status.
     """
     try:
-        print("Session id and doc id:", session_id, document_id)
         await QuizService.update_document(db,user_id, session_id, document_id)
-
-        print("After calling update document repo in service")
         return {"status": "success", "message": "Document linked successfully"}
+
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in attach document session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
-        print("Exception in attach doc controller", e)
+        logger.error(f"Exception occured in attach document session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/sessions/{session_id}/rename", response_model=QuizSessionRenameResponse)
@@ -93,22 +114,27 @@ async def rename_quiz_session(
     user_id: UUID = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session)
 ):
-    """
-    Updates the title of a specific chat session.
+    """Updates the title of a specific quiz session.
 
     Args:
         session_id (UUID): The unique identifier of the session to rename.
-        request (SessionRenameRequest): DTO containing the new title string.
-        user_id (UUID): The unique identifier of the user
-        db (AsyncSession): Database session dependency.
+        request (QuizSessionRenameRequest): DTO containing the new title string.
+        user_id (UUID): The unique identifier of the authenticated user.
+        db (AsyncSession): Asynchronous database session dependency.
 
     Returns:
-        dict: A dictionary containing the status and the updated session data.
+        dict: A status confirmation with the updated session metadata.
     """
     try:
         result = await QuizService.update_quiz_session_title(db,user_id, session_id, request.title)
         return {"status": "success", "data": result}
+    
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in rename quiz session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+        
     except Exception as e:
+        logger.error(f"Exception occured in Rename quiz session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/", response_model=List[QuizSessionResponseDTO])
@@ -116,17 +142,26 @@ async def get_sidebar_history(
     db: AsyncSession = Depends(get_async_session), 
     user_id=Depends(get_current_user)
 ):
-    """Fetches the lightweight history list for the React Native sidebar."""
+    """Fetches the lightweight historical list of quiz sessions for the navigation sidebar.
+
+    Args:
+        db (AsyncSession): Asynchronous database session dependency.
+        user_id (Any): The unique identifier of the authenticated user.
+
+    Returns:
+        List[QuizSessionResponseDTO]: List of quiz session history items.
+    """
     try:
         quizzes = await QuizService.get_sidebar_history(db=db, user_id=user_id)
         return quizzes
     
-    except HTTPException:
-        raise
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in get sidebar history: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     
     except Exception as e:
-        logger.error(f"Controller Error (sidebar): {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to load quiz history.")
+        logger.error(f"Exception occured in getting sidebar history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{session_id}", response_model=QuizSessionResponseDTO)
 async def poll_quiz_status(
@@ -134,17 +169,27 @@ async def poll_quiz_status(
     db: AsyncSession = Depends(get_async_session), 
     user_id: UUID = Depends(get_current_user)
 ):
-    """The Polling Endpoint: React Native calls this every 3 seconds to check on AI progress."""
+    """Acts as a polling endpoint to monitor async AI evaluation and generation progress.
+
+    Args:
+        session_id (UUID): The unique identifier of the session being evaluated.
+        db (AsyncSession): Asynchronous database session dependency.
+        user_id (UUID): The unique identifier of the authenticated user.
+
+    Returns:
+        QuizSessionResponseDTO: Current metadata, state, and evaluation results of the quiz session.
+    """
     try:
         session_data = await QuizService.get_quiz_for_polling(db=db, session_id=session_id, user_id=user_id)
         
         return session_data
     
-    except HTTPException:
-        raise
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in Poll Quiz Status session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
-        logger.error(f"Controller Error (polling): {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to fetch quiz status.")
+        logger.error(f"Exception occured in polling quiz status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{session_id}/generate", response_model=QuizGenerationResponseDTO)
 async def generate_quiz(
@@ -154,7 +199,18 @@ async def generate_quiz(
     db: AsyncSession = Depends(get_async_session), 
     user_id=Depends(get_current_user)
 ):
-    """The Module 3 Ignition: Starts the Grok AI generation in the background."""
+    """Triggers an asynchronous background process to generate quiz content utilizing AI models.
+
+    Args:
+        session_id (UUID): Target quiz session identifier where generated questions will live.
+        background_tasks (BackgroundTasks): FastAPI abstraction handler for non-blocking worker execution.
+        quiz_params (QuizGenerationRequestDTO): Rules and parameters to guide generation.
+        db (AsyncSession): Asynchronous database session dependency.
+        user_id (Any): The unique identifier of the authenticated user.
+
+    Returns:
+        QuizGenerationResponseDTO: Meta configurations detailing generation kickoff state.
+    """
     try:
         response_data = await QuizService.trigger_quiz_generation(
             db=db, 
@@ -165,12 +221,13 @@ async def generate_quiz(
         )
         return response_data
     
-    except HTTPException:
-        raise
+    except HTTPException as e:
+        logger.error(f"HTTP Exception generate quiz session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     except Exception as e:
-        logger.error(f"Controller Error (generate): {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to trigger AI generation.")
+        logger.error(f"Exception occured in generate quiz session: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{session_id}/submit", response_model=QuizSubmitResponseDTO)
 async def submit_quiz(
@@ -179,7 +236,17 @@ async def submit_quiz(
     db: AsyncSession = Depends(get_async_session), 
     user_id=Depends(get_current_user)
 ) :
-    """The Fork in the Road: Handles both Instant MCQ grading and Async AI Text grading."""
+    """Processes completions; scores fixed MCQ submissions instantly or forks to async text workflows.
+
+    Args:
+        session_id (UUID): The unique identifier of the evaluated quiz session.
+        user_answers (List[QuizQuestionRequest]): Collection of answers submitted by the user.
+        db (AsyncSession): Asynchronous database session dependency.
+        user_id (Any): The unique identifier of the authenticated user.
+
+    Returns:
+        dict: Map tracking compilation status, grading confirmation messages, and numeric score.
+    """
     try:
         updated_session = await QuizService.evaluate_mcq_submission(
                     db=db, 
@@ -194,9 +261,10 @@ async def submit_quiz(
         }
         return response
             
-    except HTTPException:
-        raise
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in Submit quiz session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     except Exception as e:
-        logger.error(f"Controller Error (submit): {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to submit quiz.")
+        logger.error(f"Exception occured in submit quiz: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -150,8 +150,6 @@ async def grade_text_quiz_task(session_id: UUID, user_submissions: List[QuizQues
                 logger.warning(f"AI returned empty evaluations for session {session_id}")
                 avg_score = 0
                 evaluations = [] 
-            print("Average score:",avg_score )
-            print("Evaluation:",evaluations)
             await QuizRepository.save_text_evaluation(db, session_id, evaluations, avg_score, user_id)
             logger.info(f"Successfully graded text quiz for session {session_id}")
 

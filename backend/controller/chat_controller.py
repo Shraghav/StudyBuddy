@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from uuid import UUID
 
@@ -10,6 +11,7 @@ from utils.jwt_utils import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
+logger = logging.getLogger(__name__)
 @router.post("/{session_id}/{document_id}")
 async def chat_with_document(
     session_id: UUID, 
@@ -32,7 +34,12 @@ async def chat_with_document(
     try:
         response = await ChatService.ask_question(db, session_id, document_id, request.question)
         return response
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in Chat with document session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
+        logger.error(f"Exception occured in Chat with document: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
  
 @router.patch("/{session_id}/attach/{document_id}")
@@ -57,7 +64,13 @@ async def attach_document_to_session(
     try:
         await ChatService.update_document(db,user_id, session_id, document_id)
         return {"status": "success", "message": "Document linked successfully"}
+    
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in attach document to session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
+        logger.error(f"Exception occured in attach document to session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/sessions/{session_id}/rename")
@@ -82,7 +95,13 @@ async def rename_chat_session(
     try:
         result = await ChatService.update_session_title(db,user_id, session_id, request.title)
         return {"status": "success", "data": result}
+    
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in rename chat session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
+        logger.error(f"Exception occured in rename chat: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/sessions")
@@ -110,7 +129,12 @@ async def create_new_session(
             document_id=request.document_id
         )
         return  {"status":"success", "session":session}
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in create new quiz session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
+        logger.error(f"Exception occured in create new quiz: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/sessions/bulk-delete")
@@ -133,7 +157,12 @@ async def delete_chat_sessions(
     try:   
         result = await ChatService.remove_sessions(db, user_id,session_ids )
         return {"status": "success", "data": result}
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in Delete Chat session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
+        logger.error(f"Exception occured in Delete Chat: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/sessions/all")
@@ -151,5 +180,10 @@ async def fetch_history(user_id: UUID = Depends(get_current_user), db: AsyncSess
     try:
         history = await ChatService.get_full_history(user_id, db)
         return {"status": "success", "sessions": history}
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in fetch quiz history session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
+        logger.error(f"Exception occured in fetch quiz history session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

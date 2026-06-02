@@ -215,14 +215,6 @@ export const QuizSetupVM = () => {
   );
   const isGenerating = currentSession?.status === "generating";
   const availableDocs = useSelector((state: RootState) => state.files.files);
-  // useEffect(() => {
-  //   const unsubscribe = navigation.addListener("focus", () => {
-  //     if (currentSession?.status === "completed") {
-  //       handleCreateNew();
-  //     }
-  //   });
-  //   return unsubscribe;
-  // }, [navigation, currentSession?.status]);
 
   const cleanupPolling = useCallback(() => {
     if (pollInterval.current) clearInterval(pollInterval.current);

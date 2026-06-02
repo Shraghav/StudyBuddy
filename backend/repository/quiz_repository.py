@@ -3,20 +3,27 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from dto.enums import QuizStatus
-from dto.quiz_dto import QuizGenerationRequestDTO, QuizQuestionRequest
+from dto.quiz_dto import QuizGenerationRequestDTO
 from repository.models import Document, QuizQuestion, QuizSession
 from sqlalchemy import delete, func, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 logger = logging.getLogger(__name__)
 
 class QuizRepository:
     @staticmethod
     async def create_quiz_session(db:AsyncSession, user_id: UUID, title: str) -> QuizSession:
-        """Creates the initial shell for a quiz session."""
+        """Creates the initial shell for a quiz session.
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            user_id (UUID): The unique identifier of the user.
+            title (str): The title of the quiz session.
+
+        Returns:
+            QuizSession: The newly created quiz session object model instance.
+        """
         try:
             new_session = QuizSession(
             user_id=user_id,     
@@ -39,7 +46,14 @@ class QuizRepository:
          
     @staticmethod
     async def get_user_quiz_count(db:AsyncSession, user_id: UUID) -> int:
-        """Counts how many active quizzes a user has to enforce the 10-quiz limit."""
+        """Counts how many active quizzes a user has to enforce the 10-quiz limit.
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            user_id (UUID): The unique identifier of the target user.
+
+        Returns:
+            int: The aggregate total of existing quiz sessions.
+        """
         try:
             stmt = select(func.count(QuizSession.id)).where(QuizSession.user_id == user_id)
             result = await db.execute(stmt)
@@ -52,7 +66,15 @@ class QuizRepository:
 
     @staticmethod
     async def get_quiz_session_by_id(db:AsyncSession, session_id: UUID, user_id:UUID) -> Optional[QuizSession]:
-        """Fetches a specific quiz AND eagerly loads all its associated questions."""
+        """Fetches a specific quiz session and eagerly loads all associated questions.
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            session_id (UUID): The unique identifier of the specific quiz session.
+            user_id (UUID): The unique identifier of the authenticated user.
+
+        Returns:
+            Optional[QuizSession]: The quiz session database record if found, otherwise None.
+        """
         try:
             stmt = select(QuizSession).where(
                 QuizSession.id == session_id, 
@@ -76,7 +98,14 @@ class QuizRepository:
 
     @staticmethod
     async def get_all_user_quizzes(db:AsyncSession, user_id: UUID) -> List[QuizSession]:
-        """Fetches lightweight history for the sidebar (No questions loaded here to save memory)."""
+        """Fetches lightweight quiz session tracking history for the sidebar display.
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            user_id (UUID): The unique identifier of the authenticated user.
+
+        Returns:
+            List[QuizSession]: A list of summarized quiz records containing tracking fields.
+        """
         try:
             stmt = select(QuizSession.id, QuizSession.title, QuizSession.status).where(
                 QuizSession.user_id == user_id
@@ -91,7 +120,14 @@ class QuizRepository:
     
     @staticmethod
     async def get_document_data(db:AsyncSession, document_id:UUID) -> List[QuizSession]:
-        """Fetches Document data from db"""
+        """Fetches data associated with a specific document identifier.
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            document_id (UUID): The unique identifier of the target document.
+
+        Returns:
+            List[QuizSession]: A list containing database reference models.
+        """
         try:
            stmt = select(Document).where(Document.id == document_id)
            result = await db.execute(stmt)
@@ -103,20 +139,15 @@ class QuizRepository:
 
     @staticmethod
     async def update_session_document(db: AsyncSession,user_id:UUID, session_id: UUID, document_id: UUID):
-        """
-        Performs an update operation to link a document to an existing chat session.
-
+        """Performs an update operation to link a document to an existing quiz session.
         Args:
-            db (AsyncSession): Database session dependency.4
-            user_id (UUID): The unique identifier of the user
-            session_id (UUID): The identifier of the session to update.
-            document_id (UUID): The identifier of the document to link.
+            db (AsyncSession): Asynchronous database session dependency.
+            user_id (UUID): The unique identifier of the authenticated user.
+            session_id (UUID): The unique identifier of the targeted quiz session.
+            document_id (UUID): The unique identifier of the document to link.
 
         Returns:
-            bool: True if the update operation was successful.
-
-        Raises:
-            Exception: If the update fails, with an automatic rollback.
+            bool: True if the update transaction execution was successful.
         """
         try:
             query = (
@@ -130,26 +161,21 @@ class QuizRepository:
             await db.commit()
             return True
         except Exception as e:
-            print(f"Error in ChatRepository.update_session_document: {e}")
+            logger.error(f"Error in ChatRepository.update_session_document: {e}")
             await db.rollback()
             raise e
 
     @staticmethod
     async def rename_session(db: AsyncSession,user_id:UUID, session_id: UUID, new_title: str):
-        """
-        Updates the title field for a specific ChatSession record.
-
+        """Updates the title field name for a specific quiz session record.
         Args:
-            db (AsyncSession): Database session dependency.
-            user_id (UUID): The unique identifier of the user
-            session_id (UUID): The unique identifier of the session to rename.
-            new_title (str): The new string to set as the session title.
+            db (AsyncSession): Asynchronous database session dependency.
+            user_id (UUID): The unique identifier of the authenticated user.
+            session_id (UUID): The unique identifier of the quiz session to modify.
+            new_title (str): The new text string to apply as the session title.
 
         Returns:
-            bool: True if the commit was successful.
-
-        Raises:
-            Exception: If the title update fails, with an automatic rollback.
+            bool: True if the update and database commit were successful.
         """
         try:
             query = (
@@ -162,25 +188,21 @@ class QuizRepository:
             return True
         except Exception as e:
             await db.rollback()
-            print(f"Error in ChatRepository.rename_session: {e}")
+            logger.error(f"Error in ChatRepository.rename_session: {e}")
             raise e
     
     @staticmethod
     async def update_quiz_data(db: AsyncSession,user_id:UUID, session_id: UUID, status: QuizStatus, quiz_params: Optional[QuizGenerationRequestDTO] = None):
-        """
-        Updates the title field for a specific ChatSession record.
-
+        """Updates the workflow status and optional generation parameters for a quiz session.
         Args:
-            db (AsyncSession): Database session dependency.
-            user_id (UUID): The unique identifier of the user
-            session_id (UUID): The unique identifier of the session to rename.
-            new_title (str): The new string to set as the session title.
+            db (AsyncSession): Asynchronous database session dependency.
+            user_id (UUID): The unique identifier of the authenticated user.
+            session_id (UUID): The unique identifier of the targeted quiz session.
+            status (QuizStatus): The next phase state value to apply to the session.
+            quiz_params (Optional[QuizGenerationRequestDTO]): Optional configuration DTO settings.
 
         Returns:
-            bool: True if the commit was successful.
-
-        Raises:
-            Exception: If the title update fails, with an automatic rollback.
+            Any: The repository layer response payload containing the modified record data.
         """
         try:
             update_data = {"status": status}
@@ -199,7 +221,7 @@ class QuizRepository:
             return updated_session
         except Exception as e:
             await db.rollback()
-            print(f"Error in ChatRepository.rename_session: {e}")
+            logger.error(f"Error in ChatRepository.rename_session: {e}")
             raise e
  
     @staticmethod
@@ -209,9 +231,15 @@ class QuizRepository:
         questions_data: List[Dict[str, Any]],
         user_id:UUID
     ) -> Optional[QuizSession]:
-        """
-        Save the AI-generated questions into the QuizQuestion table 
-        and flip session status to 'active'.
+        """Saves AI-generated questions into the database and marks the session active.
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            session_id (UUID): The unique identifier of the targeted quiz session.
+            questions_data (List[Dict[str, Any]]): Structured parameters representing questions.
+            user_id (UUID): The unique identifier of the authenticated user.
+
+        Returns:
+            Optional[QuizSession]: The active quiz session entity containing new questions.
         """
         try:
             session = await QuizRepository.get_quiz_session_by_id(db,session_id, user_id)
@@ -247,10 +275,15 @@ class QuizRepository:
         evaluated_answers: List[Dict[str, Any]], 
         total_score: int,
     ) -> QuizSession:
-        """
-        Saves the instant MCQ grades. 
-        evaluated_answers expects a list of dicts: 
-        [{"question_id": UUID, "user_answer": str, "is_correct": bool}]
+        """Saves calculated multiple choice question evaluations and grading scores.
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            session (QuizSession): The current quiz session entity undergoing evaluation.
+            evaluated_answers (List[Dict[str, Any]]): Collection of evaluated answers.
+            total_score (int): The absolute evaluation score total awarded to the user.
+
+        Returns:
+            QuizSession: The updated quiz session containing persistent score metrics.
         """
         try:
             session.score = total_score
@@ -273,46 +306,18 @@ class QuizRepository:
             await db.rollback()
             logger.error(f"Error saving MCQ evaluation{str(e)}")
             raise e
-
-    # @staticmethod
-    # async def save_text_evaluation(
-    #     db: AsyncSession, 
-    #     session_id: UUID, 
-    #     evaluations: List[Dict[str, Any]], 
-    #     total_score: int,
-    #     user_id:UUID
-    # ) -> Optional[QuizSession]:
-    #     """Saves AI-generated scores and feedback for text-based answers."""
-    #     try:
-    #         stmt = select(QuizSession).where(QuizSession.id == session_id).options(
-    #             selectinload(QuizSession.questions)
-    #         )
-    #         result = await db.execute(stmt)
-    #         session = result.scalar_one_or_none()
-    #         if not session:
-    #             return None
-    #         session.score = total_score
-    #         session.status = "completed"
-    #         eval_map = {UUID(e["question_id"]) if isinstance(e["question_id"], str) else e["question_id"]: e 
-    #                     for e in evaluations}
-    #         for question in session.questions:
-    #             if question.id in eval_map:
-    #                 data = eval_map[question.id]
-    #                 question.evaluation_score = float(data.get("score", 0.0))
-    #                 question.evaluation_feedback = data.get("feedback", "No feedback provided.")
-    #         await db.commit()
-
-    #         await db.refresh(session, attribute_names=['questions'])
-    #         return session
-        
-    #     except Exception as e:
-    #         await db.rollback()
-    #         logger.error(f"Repo Error (save_text_evaluation): {str(e)}")
-    #         raise e
         
     @staticmethod    
     async def remove_sessions(db:AsyncSession, user_id: UUID, session_ids:List[UUID]) -> bool:
-        """Enables the 10-quiz limit management by allowing users to delete sessions."""
+        """Enables session capacity management by executing batch deletions.
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            user_id (UUID): The unique identifier of the authenticated user.
+            session_ids (List[UUID]): Collection of unique database identifiers to remove.
+
+        Returns:
+            bool: True if the bulk removal transaction executed successfully.
+        """
         try:
             
             query = (delete(QuizSession).where(QuizSession.id.in_(session_ids),QuizSession.user_id == user_id ))
@@ -323,21 +328,3 @@ class QuizRepository:
             await db.rollback()
             logger.error(f"Error deleting session: {str(e)}")
             raise e
-        
-    # @staticmethod
-    # async def save_raw_text_answers(db: AsyncSession, session_id: UUID, user_submissions: List[QuizQuestionRequest], user_id: UUID):
-    #     """Persists the user's text strings before AI grading begins."""
-    #     try:
-    #         for sub in user_submissions:
-    #             q_id = sub.question_id
-    #             stmt = (
-    #                 update(QuizQuestion)
-    #                 .where(QuizQuestion.quiz_session_id == session_id)
-    #                 .where(QuizQuestion.id == q_id)
-    #                 .values(user_answer=sub.user_answer)
-    #             )
-    #             await db.execute(stmt)
-    #         await db.commit()
-    #     except Exception as e:
-    #         await db.rollback()
-    #         raise e

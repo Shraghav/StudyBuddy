@@ -35,7 +35,6 @@ const makeStyles = (theme: AppTheme) =>
       padding: 20,
       borderRadius: 20,
       elevation: 4,
-      // Add shadow for iOS to match elevation
       shadowColor: theme.colors.shadow,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,

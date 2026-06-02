@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List
 from uuid import UUID
@@ -12,8 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from utils.jwt_utils import get_current_user
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["Documents"])
-os.environ["GOOGLE_API_KEY"] = os.getenv('EMBEDDING_KEY')
 
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(background_tasks: BackgroundTasks,user_id: UUID = Depends(get_current_user), file: DocumentCreate = Body(...), 
@@ -29,17 +30,16 @@ async def upload_document(background_tasks: BackgroundTasks,user_id: UUID = Depe
 
     Returns:
         DocumentResponse: The metadata of the newly created document.
-
-    Raises:
-        HTTPException: 400 if the file is not a PDF, 500 for internal server errors.
     """
     try:
-        print("File name:",file)
-        # if not file.name.endswith(".pdf"):
-        #     raise HTTPException(status_code=400, detail="Only PDF files are allowed")
         return await DocumentService.upload_file(db,user_id, file, background_tasks)
+    
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in upload document session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     except Exception as e:
-        print("Exceptionn:", e  )
+        logger.error(f"Exception occured in upload document session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/{doc_id}/rename", response_model=DocumentResponse)
@@ -56,15 +56,17 @@ async def rename_document(doc_id: UUID, request: DocumentRenameRequest,user_id: 
     Returns:
         DocumentResponse: The updated document metadata.
 
-    Raises:
-        HTTPException: 400 if the document ID is not found, 500 for internal server errors.
     """
     try:
         updated_doc = await DocumentService.rename_file(db,user_id, doc_id, request.new_name)
         if not updated_doc:
             raise HTTPException(status_code=400, detail="Document not found")
         return updated_doc
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in rename document session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
+        logger.error(f"Exception occured in rename document session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/batch")
@@ -83,7 +85,11 @@ async def delete_documents(doc_ids: List[UUID],user_id: UUID = Depends(get_curre
     try:
         success = await DocumentService.delete_files(db,user_id, doc_ids)
         return {"success": success}
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in delete documents: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
+        logger.error(f"Exception occured in delete documents: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/", response_model=List[DocumentResponse])
@@ -100,5 +106,9 @@ async def get_documents(user_id: UUID = Depends(get_current_user), db: AsyncSess
     """
     try:
         return await DocumentService.fetch_documents(user_id,db)
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in get documents session: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
+        logger.error(f"Exception occured in get documents session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

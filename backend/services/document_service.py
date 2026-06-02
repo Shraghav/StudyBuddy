@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 import uuid
 from urllib.parse import unquote
@@ -6,7 +7,7 @@ from uuid import UUID
 
 import httpx
 from dto.document_dto import DocumentCreate
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, HTTPException
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -18,7 +19,7 @@ from utils.supabase_utils import supabase
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
+logger = logging.getLogger(__name__)
 class DocumentService:
     @staticmethod
     async def upload_file(db: AsyncSession, user_id: UUID, file: DocumentCreate, background_tasks: BackgroundTasks):
@@ -40,8 +41,6 @@ class DocumentService:
         Returns:
             Document: The initial database record with status set to 'PROCESSING'.
 
-        Raises:
-            Exception: If the initial database insertion or idempotency check fails.
         """
         try:
             existing_doc = await DocumentRepository.get_document_by_url(db, user_id, file.file_url)
@@ -60,9 +59,10 @@ class DocumentService:
             )
 
             return new_doc
-
+        except HTTPException:
+            raise
         except Exception as e:
-            print(f"Error in main thread upload_file: {e}")
+            logger.error(f"Error in main thread upload_file: {e}")
             raise e
 
     @staticmethod
@@ -120,9 +120,13 @@ class DocumentService:
                 await DocumentRepository.bulk_create_chunks(bg_db, new_chunks)
                 await DocumentRepository.update_document_status(bg_db, doc_id, "READY")
 
+            except HTTPException:
+                raise
+
             except Exception as e:
-                print(f"Background Processing Failed for Doc {doc_id}: {e}")
+                logger.error(f"Background Processing Failed for Doc {doc_id}: {e}")
                 await DocumentRepository.update_document_status(bg_db, doc_id, "FAILED")
+            
             
             finally:
                 if os.path.exists(temp_file_location):
@@ -139,13 +143,13 @@ class DocumentService:
         Returns:
             List[Document]: A list of all document records in the database.
 
-        Raises:
-            Exception: If the database query fails.
         """
         try:
             return await DocumentRepository.get_all_documents(user_id,db)
+        except HTTPException:
+            raise
         except Exception as e:
-            print(f"Error in service fetch_documents: {e}")
+            logger.error(f"Error in service fetch_documents: {e}")
             raise e
 
     @staticmethod
@@ -160,14 +164,13 @@ class DocumentService:
 
         Returns:
             Document: The updated document record.
-
-        Raises:
-            Exception: If the update operation fails.
         """
         try:
             return await DocumentRepository.update_document_name(db,user_id, doc_id, new_name)
+        except HTTPException:
+            raise
         except Exception as e:
-            print(f"Error in service rename_file: {e}")
+            logger.error(f"Error in service rename_file: {e}")
             raise e
 
     @staticmethod
@@ -185,28 +188,21 @@ class DocumentService:
 
         Returns:
             bool: True if the deletion was successful.
-
-        Raises:
-            Exception: If the batch deletion fails.
         """
         try: 
             file_urls = await DocumentRepository.delete_documents(db,user_id, doc_ids)
-
             if not file_urls:
                 return True
 
-            # 2. Extract paths from URLs
-            # Example: '.../storage/v1/object/public/study-buddy-docs/uploads/myfile.pdf' becomes 'uploads/myfile.pdf'
             file_paths = []
             for url in file_urls:
-                # Split to get everything after the bucket name
                 encoded_path = url.split("study-buddy-docs/")[-1]
-                # Convert %20 back to spaces, etc.
                 decoded_path = unquote(encoded_path)
                 file_paths.append(decoded_path)
-                # Call Supabase remove with the clean paths
                 supabase.storage.from_("study-buddy-docs").remove(file_paths)
                 return True
+        except HTTPException:
+            raise
         except Exception as e:
-            print(f"Error in service delete_files: {e}")
+            logger.error(f"Error in service delete_files: {e}")
             raise e

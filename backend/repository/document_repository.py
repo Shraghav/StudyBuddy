@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from uuid import UUID
 
@@ -5,7 +6,7 @@ from repository.models import Document, DocumentChunk
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-
+logger = logging.getLogger(__name__)
 
 class DocumentRepository:
     @staticmethod
@@ -33,7 +34,7 @@ class DocumentRepository:
             return new_doc
         except Exception as e:
             await db.rollback()
-            print(f"Error in repo create_document: {e}")
+            logger.error(f"Error in repo create_document: {e}")
             raise e
 
     @staticmethod
@@ -59,7 +60,7 @@ class DocumentRepository:
             return result.scalar_one_or_none()
         except Exception as e:
             await db.rollback()
-            print(f"Error updating status: {e}")
+            logger.error(f"Error updating status: {e}")
             
     @staticmethod
     async def update_document_status(db: AsyncSession, doc_id: UUID, new_status: str):
@@ -78,7 +79,7 @@ class DocumentRepository:
             await db.commit()
         except Exception as e:
             await db.rollback()
-            print(f"Error updating status: {e}")
+            logger.error(f"Error updating status: {e}")
             
     @staticmethod
     async def get_all_documents(user_id:UUID,db: AsyncSession):
@@ -99,7 +100,7 @@ class DocumentRepository:
             result = await db.execute(select(Document).where(Document.user_id == user_id).order_by(Document.upload_date.desc()))
             return result.scalars().all()
         except Exception as e:
-            print(f"Error in repo get_all_documents: {e}")
+            logger.error(f"Error in repo get_all_documents: {e}")
             raise e
 
     @staticmethod
@@ -129,7 +130,7 @@ class DocumentRepository:
             return doc
         except Exception as e:
             await db.rollback()
-            print(f"Error in repo update_document_name: {e}")
+            logger.error(f"Error in repo update_document_name: {e}")
             raise e
 
     @staticmethod
@@ -153,20 +154,18 @@ class DocumentRepository:
             Exception: If the batch delete fails, triggering a session rollback.
         """
         try:
-            # 1. Fetch the URLs before deleting the records
             result = await db.execute(
                 select(Document.file_url).where(Document.id.in_(doc_ids), Document.user_id == user_id)
             )
             file_urls = result.scalars().all()
     
-            # 2. Perform the deletion
             await db.execute(delete(Document).where(Document.id.in_(doc_ids)))
             await db.commit()
             
             return list(file_urls)
         except Exception as e:
             await db.rollback()
-            print(f"Error in repo delete_documents: {e}")
+            logger.error(f"Error in repo delete_documents: {e}")
             raise e
     
     @staticmethod
@@ -183,7 +182,7 @@ class DocumentRepository:
             await db.commit()
         except Exception as e:
             await db.rollback()
-            print(f"Error in bulk chunk insert: {e}")
+            logger.error(f"Error in bulk chunk insert: {e}")
             raise e
     
     @staticmethod
@@ -212,11 +211,10 @@ class DocumentRepository:
             ).order_by(
                 DocumentChunk.embedding.l2_distance(query_vector)
             ).limit(limit)
-            
             result = await db.execute(query)
             return result.scalars().all()
         except Exception as e:
-            print(f"Error in repo get_similar_chunks: {e}")
+            logger.error(f"Error in repo get_similar_chunks: {e}")
             raise e
 
     @staticmethod
@@ -242,7 +240,7 @@ class DocumentRepository:
             result = await db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
-            print(f"Error in repo get_chunk_by_hash: {e}")
+            logger.error(f"Error in repo get_chunk_by_hash: {e}")
             raise e
 
     @staticmethod
@@ -262,5 +260,5 @@ class DocumentRepository:
             await db.commit()
         except Exception as e:
             await db.rollback()
-            print(f"Error in repo save_chunks: {e}")
+            logger.error(f"Error in repo save_chunks: {e}")
             raise e
