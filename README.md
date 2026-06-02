@@ -37,8 +37,16 @@ A full-stack mobile app designed to help users interact with their study materia
 * **Session Management:** Users can navigate to the Chat tab and use the Chat Drawer to create a new session.
 * **Document Context:** To ask questions, users must first attach a previously uploaded document to the active chat session. The AI's answers are generated based on the attached document.
 * **Drawer Controls:** Similar to the upload screen, the drawer allows users to long-press chat sessions to rename them or perform batch deletions.
-* **Comprehensive API:** The chat functionality is supported by 6 backend endpoints for handling session creation, deletion, renaming, fetching history, attaching documents, and processing the chat Q&A for the respective users.
-  
+* **Comprehensive API:** The chat functionality is supported by 6 backend endpoints for handling session creation, deletion, renaming quiz title, fetching history, attaching documents, and processing the chat Q&A for the respective users.
+
+### 4. Dynamic Quiz Engine (Quiz Screen & Drawer)
+
+* **Session Management:** Users can navigate to quiz tab and use quiz drawer to create a new session.
+* **Input Parameters:** Before generating quiz the user should attach the previously uploaded document along with number of questions, difficulty level and an optional instruction field
+* **Drawer Controls:** Similar to Chat Drawer
+* **AI Quiz Generation:** The backend leverages a hybrid text and OCR extraction pipeline to parse the document, immediately offloading the processing to a background worker that generates multiple-choice questions via LangChain and Groq AI.
+* **Status Polling & MCQ Evaluation:** The app dynamically polls the backend to monitor generation states until the quiz becomes active. Upon user completion, multiple-choice answers are graded instantly against the database records using an optimized lookup map.
+* **Comprehensive API:** The quiz functionality is supported by 8 backend endpoints for handling session creation, status polling, attaching documents, renaming quiz title, generating mcq, fetching generated questions, processing MCQ submissions, and managing session removal.
 ---
 
 ## Prerequisites
