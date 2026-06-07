@@ -1,6 +1,6 @@
 # StudyBuddy
 
-A full-stack mobile app designed to help users interact with their study materials. It allows users to upload PDF documents, store them securely in the cloud, and ask context-aware questions about the content using an AI-powered chat interface.
+A full-stack mobile app designed to help users interact with their study materials. It allows users to upload PDF documents, store them securely in the cloud, ask context-aware questions via an AI-powered chat interface, and instantly generate and evaluate interactive quizzes based directly on the uploaded content.
 
 ## Tech Stack
 
