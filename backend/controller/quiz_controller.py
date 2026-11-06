@@ -1,8 +1,17 @@
 import logging
-from typing import List
 from uuid import UUID
 
-from dto.quiz_dto import QuizDeleteResponseDTO, QuizGenerationRequestDTO, QuizGenerationResponseDTO, QuizQuestionRequest, QuizSessionRenameRequest, QuizSessionRenameResponse, QuizSessionResponseDTO, QuizSubmitResponseDTO, SetupQuizRequest
+from dto.quiz_dto import (
+    QuizDeleteResponseDTO,
+    QuizGenerationRequestDTO,
+    QuizGenerationResponseDTO,
+    QuizQuestionRequest,
+    QuizSessionRenameRequest,
+    QuizSessionRenameResponse,
+    QuizSessionResponseDTO,
+    QuizSubmitResponseDTO,
+    SetupQuizRequest,
+)
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from repository.database import get_async_session
 from services.quiz_service import QuizService
@@ -15,11 +24,11 @@ router = APIRouter(
     tags=["Quiz Module"]
 )
 
-@router.post("/setup")
+@router.post("/sessions")
 async def setup_quiz(
-    title:SetupQuizRequest,
-    db: AsyncSession = Depends(get_async_session), 
-    user_id=Depends(get_current_user),
+    request: SetupQuizRequest,
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    user_id=Depends(get_current_user),  # noqa: B008
 ):
     """Creates the initial shell for the quiz and enforces the 10-quiz limit.
 
@@ -32,28 +41,28 @@ async def setup_quiz(
         dict: A dictionary wrapping the newly created session information.
     """
     try:
-        user_id_uuid = UUID(user_id)
+        user_id_uuid = user_id if isinstance(user_id, UUID) else UUID(str(user_id))
         session = await QuizService.initialize_quiz(
             db=db, 
             user_id=user_id_uuid, 
-            quiz_title=title
+            quiz_request=request
         )
 
-        return {"session":session}
+        return {"status": "success", "session": session}
     
     except HTTPException as e:
-        logger.error(f"HTTP Exception in setup: {str(e)}")
+        logger.error(f"HTTP Exception in setup: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    except Exception as e:
-        logger.error(f"Exception occured in setup: {str(e)}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in setup: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/sessions/bulk-delete", response_model=QuizDeleteResponseDTO)
 async def delete_quizes(
-    session_ids: List[UUID], 
-    db: AsyncSession = Depends(get_async_session), 
-    user_id=Depends(get_current_user)
+    session_ids: list[UUID], 
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    user_id=Depends(get_current_user)  # noqa: B008
 ) :
     """Deletes a batch of quiz sessions, freeing up space against the 10-quiz limit.
 
@@ -70,49 +79,19 @@ async def delete_quizes(
         return {"message":"success", "session_ids":response_data}
     
     except HTTPException as e:
-        logger.error(f"HTTP Exception in delete quizes: {str(e)}")
+        logger.error(f"HTTP Exception in delete quizes: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     
-    except Exception as e:
-        logger.error(f"Exception occured in delete quiz session: {str(e)}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in delete quiz session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
-@router.patch("/{session_id}/attach/{document_id}")
-async def attach_document_to_session(
-    session_id: UUID, 
-    document_id: UUID, 
-    user_id: UUID = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_session)
-):
-    """Links an existing document context to an active quiz session.
-
-    Args:
-        session_id (UUID): The unique identifier of the target quiz session.
-        document_id (UUID): The unique identifier of the document reference to link.
-        user_id (UUID): The unique identifier of the authenticated user.
-        db (AsyncSession): Asynchronous database session dependency.
-
-    Returns:
-        dict: Confirmation payload indicating execution status.
-    """
-    try:
-        await QuizService.update_document(db,user_id, session_id, document_id)
-        return {"status": "success", "message": "Document linked successfully"}
-
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in attach document session: {str(e)}")
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
-
-    except Exception as e:
-        logger.error(f"Exception occured in attach document session: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.patch("/sessions/{session_id}/rename", response_model=QuizSessionRenameResponse)
 async def rename_quiz_session(
     session_id: UUID, 
     request: QuizSessionRenameRequest, 
-    user_id: UUID = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_session)
+    user_id: UUID = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session)  # noqa: B008
 ):
     """Updates the title of a specific quiz session.
 
@@ -130,17 +109,17 @@ async def rename_quiz_session(
         return {"status": "success", "data": result}
     
     except HTTPException as e:
-        logger.error(f"HTTP Exception in rename quiz session: {str(e)}")
+        logger.error(f"HTTP Exception in rename quiz session: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
         
-    except Exception as e:
-        logger.error(f"Exception occured in Rename quiz session: {str(e)}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in Rename quiz session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/", response_model=List[QuizSessionResponseDTO])
+@router.get("/", response_model=list[QuizSessionResponseDTO])
 async def get_sidebar_history(
-    db: AsyncSession = Depends(get_async_session), 
-    user_id=Depends(get_current_user)
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    user_id=Depends(get_current_user)  # noqa: B008
 ):
     """Fetches the lightweight historical list of quiz sessions for the navigation sidebar.
 
@@ -156,18 +135,18 @@ async def get_sidebar_history(
         return quizzes
     
     except HTTPException as e:
-        logger.error(f"HTTP Exception in get sidebar history: {str(e)}")
+        logger.error(f"HTTP Exception in get sidebar history: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     
-    except Exception as e:
-        logger.error(f"Exception occured in getting sidebar history: {str(e)}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in getting sidebar history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{session_id}", response_model=QuizSessionResponseDTO)
 async def poll_quiz_status(
     session_id: UUID, 
-    db: AsyncSession = Depends(get_async_session), 
-    user_id: UUID = Depends(get_current_user)
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    user_id: UUID = Depends(get_current_user)  # noqa: B008
 ):
     """Acts as a polling endpoint to monitor async AI evaluation and generation progress.
 
@@ -185,10 +164,10 @@ async def poll_quiz_status(
         return session_data
     
     except HTTPException as e:
-        logger.error(f"HTTP Exception in Poll Quiz Status session: {str(e)}")
+        logger.error(f"HTTP Exception in Poll Quiz Status session: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
-    except Exception as e:
-        logger.error(f"Exception occured in polling quiz status: {str(e)}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in polling quiz status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{session_id}/generate", response_model=QuizGenerationResponseDTO)
@@ -196,8 +175,8 @@ async def generate_quiz(
     session_id: UUID, 
     background_tasks: BackgroundTasks,
     quiz_params:QuizGenerationRequestDTO,
-    db: AsyncSession = Depends(get_async_session), 
-    user_id=Depends(get_current_user)
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    user_id=Depends(get_current_user)  # noqa: B008
 ):
     """Triggers an asynchronous background process to generate quiz content utilizing AI models.
 
@@ -222,19 +201,19 @@ async def generate_quiz(
         return response_data
     
     except HTTPException as e:
-        logger.error(f"HTTP Exception generate quiz session: {str(e)}")
+        logger.error(f"HTTP Exception generate quiz session: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    except Exception as e:
-        logger.error(f"Exception occured in generate quiz session: {str(e)}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in generate quiz session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{session_id}/submit", response_model=QuizSubmitResponseDTO)
 async def submit_quiz(
     session_id: UUID, 
-    user_answers: List[QuizQuestionRequest], 
-    db: AsyncSession = Depends(get_async_session), 
-    user_id=Depends(get_current_user)
+    user_answers: list[QuizQuestionRequest], 
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    user_id=Depends(get_current_user)  # noqa: B008
 ) :
     """Processes completions; scores fixed MCQ submissions instantly or forks to async text workflows.
 
@@ -262,9 +241,9 @@ async def submit_quiz(
         return response
             
     except HTTPException as e:
-        logger.error(f"HTTP Exception in Submit quiz session: {str(e)}")
+        logger.error(f"HTTP Exception in Submit quiz session: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    except Exception as e:
-        logger.error(f"Exception occured in submit quiz: {str(e)}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in submit quiz: {e}")
         raise HTTPException(status_code=500, detail=str(e))

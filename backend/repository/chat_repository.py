@@ -1,4 +1,4 @@
-from typing import List
+
 from uuid import UUID
 
 from repository.models import ChatMessage, ChatSession
@@ -7,10 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+
 class ChatRepository:
 
     @staticmethod
-    async def create_session(db: AsyncSession, user_id: UUID, title: str, document_id: UUID = None):
+    async def create_session(db: AsyncSession, user_id: UUID, title: str, document_id: UUID):
         """
         Persists a new ChatSession record in the database.
 
@@ -35,7 +36,7 @@ class ChatRepository:
         except Exception as e:
             await db.rollback()
             print(f"Error in ChatRepository.create_session: {e}")
-            raise e
+            raise 
 
     @staticmethod
     async def save_message(db: AsyncSession, session_id: UUID, sender: str, text: str):
@@ -62,7 +63,7 @@ class ChatRepository:
         except Exception as e:
             await db.rollback()
             print(f"Error in ChatRepository.save_message: {e}")
-            raise e
+            raise 
 
     @staticmethod
     async def get_session_messages(db: AsyncSession, session_id: UUID, user_id:UUID):
@@ -86,8 +87,19 @@ class ChatRepository:
             return result.scalars().all()
         except Exception as e:
             print(f"Error in ChatRepository.get_session_messages: {e}")
-            raise e
+            raise 
     
+    @staticmethod
+    async def get_session_by_id(db: AsyncSession, user_id: UUID, session_id: UUID):
+        """Retrieves a single ChatSession by its ID and user ID."""
+        try:
+            query = select(ChatSession).where(ChatSession.id == session_id, ChatSession.user_id == user_id)
+            result = await db.execute(query)
+            return result.scalar_one_or_none()
+        except Exception as e:
+            print(f"Error in ChatRepository.get_session_by_id: {e}")
+            raise
+
     @staticmethod
     async def update_session_document(db: AsyncSession,user_id:UUID, session_id: UUID, document_id: UUID):
         """
@@ -117,7 +129,7 @@ class ChatRepository:
         except Exception as e:
             print(f"Error in ChatRepository.update_session_document: {e}")
             await db.rollback()
-            raise e
+            raise 
         
     @staticmethod
     async def get_all_sessions(user_id:UUID,db: AsyncSession):
@@ -151,7 +163,7 @@ class ChatRepository:
             return sessions
         except Exception as e:
             print(f"Error in ChatRepository.get_all_sessions: {e}")
-            raise e
+            raise 
     
     @staticmethod
     async def rename_session(db: AsyncSession,user_id:UUID, session_id: UUID, new_title: str):
@@ -182,10 +194,10 @@ class ChatRepository:
         except Exception as e:
             await db.rollback()
             print(f"Error in ChatRepository.rename_session: {e}")
-            raise e
+            raise 
 
     @staticmethod
-    async def delete_sessions(db: AsyncSession, user_id:UUID, session_ids: List[UUID]):
+    async def delete_sessions(db: AsyncSession, user_id:UUID, session_ids: list[UUID]):
         """
         Removes multiple ChatSession records based on a provided list of IDs.
 
@@ -211,4 +223,4 @@ class ChatRepository:
         except Exception as e:
             await db.rollback()
             print(f"Error in ChatRepository.delete_sessions: {e}")
-            raise e
+            raise

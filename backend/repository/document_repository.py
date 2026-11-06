@@ -1,24 +1,26 @@
 import logging
-from typing import List
+from typing import Any
 from uuid import UUID
 
 from repository.models import Document, DocumentChunk
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 logger = logging.getLogger(__name__)
+
 
 class DocumentRepository:
     @staticmethod
-    async def create_document(db: AsyncSession,user_id:UUID, name: str, size: int, file_url: str) -> Document:
-        """
-        Creates and persists a new Document record with binary content.
+    async def create_document(db: AsyncSession, user_id: UUID, name: str, size: int, file_url: str) -> Document:
+        """Creates and persists a new Document record with binary content.
 
         Args:
             db (AsyncSession): Database session dependency.
+            user_id (UUID): The unique identifier of the user who owns the document.
             name (str): The name of the file.
             size (int): The file size in bytes.
-            file_content (bytes): The raw binary content of the PDF.
+            file_url (str): The storage URL of the file.
 
         Returns:
             Document: The persisted and refreshed document instance.
@@ -27,20 +29,19 @@ class DocumentRepository:
             Exception: If the insertion fails, triggering a session rollback.
         """
         try:
-            new_doc = Document(name=name,user_id=user_id,size=size, file_url=file_url)
+            new_doc = Document(name=name, user_id=user_id, size=size, file_url=file_url)
             db.add(new_doc)
             await db.commit()
             await db.refresh(new_doc)
             return new_doc
         except Exception as e:
             await db.rollback()
-            logger.error(f"Error in repo create_document: {e}")
-            raise e
+            logger.error("Error in repo create_document: %s", e)
+            raise
 
     @staticmethod
-    async def get_document_by_url(db: AsyncSession, user_id: UUID, file_url: str) -> Document:
-        """
-        Checks if a document already exists to prevent duplicate uploads.
+    async def get_document_by_url(db: AsyncSession, user_id: UUID, file_url: str) -> Document | None:
+        """Checks if a document already exists to prevent duplicate uploads.
 
         Args:
             db (AsyncSession): Database session dependency.
@@ -48,24 +49,24 @@ class DocumentRepository:
             file_url (str): The storage URL of the file to check.
 
         Returns:
-            Document: The existing document instance if found, otherwise None.
+            Document | None: The existing document instance if found, otherwise None.
         """
         try:
             result = await db.execute(
-            select(Document).where(
-                Document.file_url == file_url,
-                Document.user_id == user_id
-            ).limit(1)
-        )
+                select(Document).where(
+                    Document.file_url == file_url,
+                    Document.user_id == user_id,
+                ).limit(1)
+            )
             return result.scalar_one_or_none()
         except Exception as e:
+            logger.error("Error fetching document by url: %s", e)
             await db.rollback()
-            logger.error(f"Error updating status: {e}")
-            
+            raise
+
     @staticmethod
     async def update_document_status(db: AsyncSession, doc_id: UUID, new_status: str):
-        """
-        Updates the document status to READY or FAILED.
+        """Updates the document status to READY or FAILED.
 
         Args:
             db (AsyncSession): Database session dependency.
@@ -79,34 +80,35 @@ class DocumentRepository:
             await db.commit()
         except Exception as e:
             await db.rollback()
-            logger.error(f"Error updating status: {e}")
-            
+            logger.error("Error updating status: %s", e)
+            raise
+
     @staticmethod
-    async def get_all_documents(user_id:UUID,db: AsyncSession):
-        """
-        Retrieves all documents from the database ordered by upload date.
+    async def get_all_documents(user_id: UUID, db: AsyncSession) -> list[Document]:
+        """Retrieves all documents from the database ordered by upload date.
 
         Args:
+            user_id (UUID): The unique identifier of the user.
             db (AsyncSession): Database session dependency.
-            user_id (UUID): The unique identifier of the user
 
         Returns:
-            List[Document]: A list of documents sorted by newest upload first.
+            list[Document]: A list of documents sorted by newest upload first.
 
         Raises:
             Exception: If the select query fails.
         """
         try:
-            result = await db.execute(select(Document).where(Document.user_id == user_id).order_by(Document.upload_date.desc()))
-            return result.scalars().all()
+            result = await db.execute(
+                select(Document).where(Document.user_id == user_id).order_by(Document.upload_date.desc())
+            )
+            return list(result.scalars().all())
         except Exception as e:
-            logger.error(f"Error in repo get_all_documents: {e}")
-            raise e
+            logger.error("Error in repo get_all_documents: %s", e)
+            raise
 
     @staticmethod
-    async def update_document_name(db: AsyncSession,user_id:UUID, doc_id: UUID, new_name: str):
-        """
-        Updates the filename of an existing document record.
+    async def update_document_name(db: AsyncSession, user_id: UUID, doc_id: UUID, new_name: str) -> Document | None:
+        """Updates the filename of an existing document record.
 
         Args:
             db (AsyncSession): Database session dependency.
@@ -121,8 +123,10 @@ class DocumentRepository:
             Exception: If the update fails, triggering a session rollback.
         """
         try:
-            result = await db.execute(select(Document).where(Document.id == doc_id, Document.user_id == user_id))
-            doc = result.scalar_one_or_none()
+            result = await db.execute(
+                select(Document).where(Document.id == doc_id, Document.user_id == user_id)
+            )
+            doc: Any = result.scalar_one_or_none()
             if doc:
                 doc.name = new_name
                 await db.commit()
@@ -130,16 +134,15 @@ class DocumentRepository:
             return doc
         except Exception as e:
             await db.rollback()
-            logger.error(f"Error in repo update_document_name: {e}")
-            raise e
+            logger.error("Error in repo update_document_name: %s", e)
+            raise
 
     @staticmethod
-    async def delete_documents(db: AsyncSession,user_id:UUID, doc_ids: list[UUID]):
-        """
-        Deletes a batch of documents based on a list of unique identifiers.
+    async def delete_documents(db: AsyncSession, user_id: UUID, doc_ids: list[UUID]) -> list[str]:
+        """Deletes a batch of documents based on a list of unique identifiers.
 
         Note:
-            Ensure database foreign keys are set to 'ON DELETE CASCADE' 
+            Ensure database foreign keys are set to 'ON DELETE CASCADE'
             to remove associated chunks automatically.
 
         Args:
@@ -148,7 +151,7 @@ class DocumentRepository:
             doc_ids (list[UUID]): List of UUIDs to be removed.
 
         Returns:
-            bool: True if the deletion commit was successful.
+            list[str]: List of deleted file storage URLs.
 
         Raises:
             Exception: If the batch delete fails, triggering a session rollback.
@@ -158,20 +161,19 @@ class DocumentRepository:
                 select(Document.file_url).where(Document.id.in_(doc_ids), Document.user_id == user_id)
             )
             file_urls = result.scalars().all()
-    
+
             await db.execute(delete(Document).where(Document.id.in_(doc_ids)))
             await db.commit()
-            
+
             return list(file_urls)
         except Exception as e:
             await db.rollback()
-            logger.error(f"Error in repo delete_documents: {e}")
-            raise e
-    
+            logger.error("Error in repo delete_documents: %s", e)
+            raise
+
     @staticmethod
     async def bulk_create_chunks(db: AsyncSession, chunks_data: list[DocumentChunk]):
-        """
-        Inserts all chunks in a single database transaction.
+        """Inserts all chunks in a single database transaction.
 
         Args:
             db (AsyncSession): Database session dependency.
@@ -182,15 +184,16 @@ class DocumentRepository:
             await db.commit()
         except Exception as e:
             await db.rollback()
-            logger.error(f"Error in bulk chunk insert: {e}")
-            raise e
-    
-    @staticmethod
-    async def get_similar_chunks(db: AsyncSession, document_id: UUID, query_vector: list[float], limit: int = 5) -> List[DocumentChunk]:
-        """
-        Performs a vector similarity search using L2 distance (Euclidean distance).
+            logger.error("Error in bulk chunk insert: %s", e)
+            raise
 
-        This method queries the DocumentChunk table to find text segments 
+    @staticmethod
+    async def get_similar_chunks(
+        db: AsyncSession, document_id: UUID, query_vector: list[float], limit: int = 5
+    ) -> list[DocumentChunk]:
+        """Performs a vector similarity search using L2 distance (Euclidean distance).
+
+        This method queries the DocumentChunk table to find text segments
         most relevant to the user's question vector.
 
         Args:
@@ -200,29 +203,29 @@ class DocumentRepository:
             limit (int): Number of relevant chunks to retrieve. Defaults to 5.
 
         Returns:
-            List[DocumentChunk]: Chunks ordered by similarity (lowest distance first).
+            list[DocumentChunk]: Chunks ordered by similarity (lowest distance first).
 
         Raises:
             Exception: If the vector distance query fails.
         """
         try:
-            query = select(DocumentChunk).where(
-                DocumentChunk.document_id == document_id
-            ).order_by(
-                DocumentChunk.embedding.l2_distance(query_vector)
-            ).limit(limit)
+            query = (
+                select(DocumentChunk)
+                .where(DocumentChunk.document_id == document_id)
+                .order_by(DocumentChunk.embedding.l2_distance(query_vector))
+                .limit(limit)
+            )
             result = await db.execute(query)
-            return result.scalars().all()
+            return list(result.scalars().all())
         except Exception as e:
-            logger.error(f"Error in repo get_similar_chunks: {e}")
-            raise e
+            logger.error("Error in repo get_similar_chunks: %s", e)
+            raise
 
     @staticmethod
     async def get_chunk_by_hash(db: AsyncSession, content_hash: str) -> DocumentChunk | None:
-        """
-        Checks for existing text chunks using an MD5 content hash.
+        """Checks for existing text chunks using an MD5 content hash.
 
-        Used to prevent duplicate embedding generation and storage 
+        Used to prevent duplicate embedding generation and storage
         for identical text segments.
 
         Args:
@@ -240,25 +243,24 @@ class DocumentRepository:
             result = await db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
-            logger.error(f"Error in repo get_chunk_by_hash: {e}")
-            raise e
+            logger.error("Error in repo get_chunk_by_hash: %s", e)
+            raise
 
     @staticmethod
-    async def save_chunks(db: AsyncSession, chunks: List[DocumentChunk]):
-        """
-        Persists a batch of generated text chunks and their embeddings.
+    async def save_chunks(db: AsyncSession, chunks: list[DocumentChunk]):
+        """Persists a batch of generated text chunks and their embeddings.
 
         Args:
             db (AsyncSession): Database session dependency.
-            chunks (List[DocumentChunk]): A list of chunk instances to be saved.
+            chunks (list[DocumentChunk]): A list of chunk instances to be saved.
 
         Raises:
             Exception: If the bulk insertion fails, triggering a session rollback.
         """
         try:
-            db.add_all(chunks) 
+            db.add_all(chunks)
             await db.commit()
         except Exception as e:
             await db.rollback()
-            logger.error(f"Error in repo save_chunks: {e}")
-            raise e
+            logger.error("Error in repo save_chunks: %s", e)
+            raise

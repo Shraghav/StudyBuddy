@@ -47,3 +47,9 @@ alembic.ini
 /alembic
 backend/alembic
 backend/practice.py
+
+materials
+DEPLOYMENT.md
+.vscode/
+.dockerignore
+tests

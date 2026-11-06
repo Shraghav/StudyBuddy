@@ -19,11 +19,10 @@ else:
     print(f"Error: {response.status_code}")
     print(response.text)
 
-
-# import os
+import os
 
 from dotenv import load_dotenv
-import os
+
 load_dotenv()
 DATABASE_URL =  os.getenv("DATABASE_URL")
 print("Key:", DATABASE_URL)

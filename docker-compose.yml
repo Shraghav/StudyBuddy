@@ -1,17 +1,52 @@
+version: "3.8"
+
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: studybuddy-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: studybuddy-api
+    restart: always
     ports:
       - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - ./backend:/app
     environment:
+      # Redis Connection (Internal Docker Network)
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # Supabase & PostgreSQL
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
       - DATABASE_URL=${DATABASE_URL}
+      # LLM & Embedding Providers
       - GROQ_API_KEY=${GROQ_API_KEY}
       - EMBEDDING_KEY=${EMBEDDING_KEY}
-      - MODAL_NAME=${MODAL_NAME}
+      - MODAL_NAME=${MODAL_NAME:-llama-3.3-70b-versatile}
+      # JWT Authentication
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  redis_data:
+    driver: local

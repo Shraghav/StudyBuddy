@@ -1,26 +1,28 @@
-from typing import Any, Dict, List, Optional, Literal, Union
+from typing import Any, Literal, Union
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field
 
 from dto.enums import QuizStatus
+from pydantic import BaseModel, ConfigDict, Field
+
+
 class SetupQuizRequest(BaseModel):
-    title:str
-# Quiz Generation  request and response
+    title: str
+    document_id: UUID
+
+
 class QuizGenerationRequestDTO(BaseModel):
     numQuestions: int = Field(..., gt=0, le=25)
     difficulty: Literal["Easy", "Medium", "Hard"]
-    customPrompt: Optional[str] = Field(default="", max_length=500)
+    customPrompt: str = Field(default="", max_length=500)
 
 class QuizGenerationResponseDTO(BaseModel):
     message:str
     session_title:str
 
-# Quiz Setup and delete parameters
 class QuizDeleteResponseDTO(BaseModel):
     message:str   
-    session_ids:List[UUID]
+    session_ids:list[UUID]
 
-#Quiz sidebar
 class QuizSessionMinimalDTO(BaseModel):
     id: UUID
     title: str
@@ -28,29 +30,27 @@ class QuizSessionMinimalDTO(BaseModel):
     
     model_config = ConfigDict(from_attributes=True)
 
-# Quiz active status (session and questions)
 class QuizQuestionActiveDTO(BaseModel):
     id: UUID
     text: str
-    options: Optional[Dict[str, Any]] = None
+    options: dict[str, Any] | None = None
 
 class QuizSessionActiveDTO(BaseModel):
     id: UUID
     title: str
     status: Literal[QuizStatus.active]
-    questions: List[QuizQuestionActiveDTO]
+    questions: list[QuizQuestionActiveDTO]
     
     model_config = ConfigDict(from_attributes=True)
 
-# Quiz completed status (session and questions)
 class QuizQuestionCompletedDTO(BaseModel):
     id: UUID
     text: str
-    options: Optional[Dict[str, Any]] = None
-    user_answer: Optional[str] = None
+    options: dict[str, Any] | None = None
+    user_answer: str | None = None
     correct_answer: str
-    evaluation_score: Optional[float] = None
-    evaluation_feedback: Optional[str] = None
+    evaluation_score: float | None = None
+    evaluation_feedback: str | None = None
 
 class QuizSessionCompletedDTO(BaseModel):
     id: UUID
@@ -58,16 +58,14 @@ class QuizSessionCompletedDTO(BaseModel):
     status: Literal[QuizStatus.completed]
     score: int
     feedback: str
-    questions: List[QuizQuestionCompletedDTO]
+    questions: list[QuizQuestionCompletedDTO]
     
     model_config = ConfigDict(from_attributes=True)
 
-# Quiz question request
 class QuizQuestionRequest(BaseModel):
     question_id:UUID
     user_answer:str
 
-# Quiz submit response (overall)
 class QuizSubmitResponseDTO(BaseModel):
     message: str
     status: str
@@ -78,5 +76,5 @@ class QuizSessionRenameRequest(BaseModel):
 
 class QuizSessionRenameResponse(BaseModel):
     status: str
-    data:Dict[str, str]
+    data:dict[str, str]
 QuizSessionResponseDTO = Union[QuizSessionCompletedDTO, QuizSessionActiveDTO, QuizSessionMinimalDTO]

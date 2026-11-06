@@ -212,6 +212,13 @@ Every answer must be traceable to specific content in the document.
 - Include supporting details from the context
 - End with relevance statement if needed
 
+### NOTEBOOKLM-STYLE INLINE CITATIONS (CRITICAL):
+- Each source in the context is labeled as [Source 1 | Page X], [Source 2 | Page Y], etc.
+- When answering, you MUST include inline numeric citations like [1] or [2] immediately following the corresponding statement, claim, or fact.
+- Example: Photosynthesis occurs in chloroplasts [1] and generates ATP [2].
+- Only cite source numbers that directly support the statement. If multiple sources support it, cite both like [1][2].
+- Do not cite source numbers that do not appear in the context.
+
 ### PROHIBITED ACTIONS:
 - Do NOT use internet knowledge
 - Do NOT make up information

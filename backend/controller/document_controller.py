@@ -1,11 +1,8 @@
 import logging
-import os
-from typing import List
 from uuid import UUID
 
 from dotenv import load_dotenv
-from dto.document_dto import (DocumentCreate, DocumentRenameRequest,
-                              DocumentResponse)
+from dto.document_dto import DocumentCreate, DocumentRenameRequest, DocumentResponse
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException
 from repository.database import get_async_session
 from services.document_service import DocumentService
@@ -17,8 +14,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 @router.post("/upload", response_model=DocumentResponse)
-async def upload_document(background_tasks: BackgroundTasks,user_id: UUID = Depends(get_current_user), file: DocumentCreate = Body(...), 
-    db: AsyncSession = Depends(get_async_session)):
+async def upload_document(background_tasks: BackgroundTasks,user_id: UUID = Depends(get_current_user), file: DocumentCreate = Body(...),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session)):  # noqa: B008
     """
     Uploads a PDF document and generates vector embeddings.
 
@@ -35,15 +32,15 @@ async def upload_document(background_tasks: BackgroundTasks,user_id: UUID = Depe
         return await DocumentService.upload_file(db,user_id, file, background_tasks)
     
     except HTTPException as e:
-        logger.error(f"HTTP Exception in upload document session: {str(e)}")
+        logger.error(f"HTTP Exception in upload document session: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    except Exception as e:
-        logger.error(f"Exception occured in upload document session: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in upload document session: {e}")
+        raise HTTPException(status_code=500, detail=e)
 
 @router.patch("/{doc_id}/rename", response_model=DocumentResponse)
-async def rename_document(doc_id: UUID, request: DocumentRenameRequest,user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):
+async def rename_document(doc_id: UUID, request: DocumentRenameRequest,user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):  # noqa: B008
     """
     Updates the display name of an existing document.
 
@@ -63,14 +60,14 @@ async def rename_document(doc_id: UUID, request: DocumentRenameRequest,user_id: 
             raise HTTPException(status_code=400, detail="Document not found")
         return updated_doc
     except HTTPException as e:
-        logger.error(f"HTTP Exception in rename document session: {str(e)}")
+        logger.error(f"HTTP Exception in rename document session: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
-    except Exception as e:
-        logger.error(f"Exception occured in rename document session: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in rename document session: {e}")
+        raise HTTPException(status_code=500, detail=e)
 
 @router.delete("/batch")
-async def delete_documents(doc_ids: List[UUID],user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):
+async def delete_documents(doc_ids: list[UUID],user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):  # noqa: B008
     """
     Deletes multiple documents and their associated vector chunks from the system.
 
@@ -86,14 +83,14 @@ async def delete_documents(doc_ids: List[UUID],user_id: UUID = Depends(get_curre
         success = await DocumentService.delete_files(db,user_id, doc_ids)
         return {"success": success}
     except HTTPException as e:
-        logger.error(f"HTTP Exception in delete documents: {str(e)}")
+        logger.error(f"HTTP Exception in delete documents: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
-    except Exception as e:
-        logger.error(f"Exception occured in delete documents: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in delete documents: {e}")
+        raise HTTPException(status_code=500, detail=e)
 
-@router.get("/", response_model=List[DocumentResponse])
-async def get_documents(user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):
+@router.get("/", response_model=list[DocumentResponse])
+async def get_documents(user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):  # noqa: B008
     """
     Retrieves a list of all uploaded documents and their metadata.
 
@@ -107,8 +104,8 @@ async def get_documents(user_id: UUID = Depends(get_current_user), db: AsyncSess
     try:
         return await DocumentService.fetch_documents(user_id,db)
     except HTTPException as e:
-        logger.error(f"HTTP Exception in get documents session: {str(e)}")
+        logger.error(f"HTTP Exception in get documents session: {e}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
-    except Exception as e:
-        logger.error(f"Exception occured in get documents session: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception occured in get documents session: {e}")
+        raise HTTPException(status_code=500, detail=e)

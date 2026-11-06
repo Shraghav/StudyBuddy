@@ -1,5 +1,4 @@
 import logging
-from typing import List
 from uuid import UUID
 
 from dto.chat_dto import ChatRequest, SessionCreate, SessionRenameRequest
@@ -8,182 +7,127 @@ from repository.database import get_async_session
 from services.chat_service import ChatService
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.jwt_utils import get_current_user
+from utils.rate_limiter import RateLimiter
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
-
 logger = logging.getLogger(__name__)
-@router.post("/{session_id}/{document_id}")
-async def chat_with_document(
-    session_id: UUID, 
-    document_id: UUID, 
-    request: ChatRequest, 
-    db: AsyncSession = Depends(get_async_session)
+
+@router.post("/{session_id}/message")
+async def chat_with_session(
+    session_id: UUID,
+    request: ChatRequest,
+    user_id: UUID = Depends(RateLimiter(limit=20, window_seconds=60)),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ):
-    """
-    Processes a user question within a specific session using a linked document's context.
-
-    Args:
-        session_id (UUID): The unique identifier of the chat session.
-        document_id (UUID): The unique identifier of the document to query.
-        request (ChatRequest): DTO containing the user's question.
-        db (AsyncSession): Database session dependency.
-
-    Returns:
-        dict: A dictionary containing the status and the AI-generated content response.
+    """Processes a user question within a specific session using its linked document context.
+    Uses a SINGLE path parameter (session_id). The document is resolved automatically
+    from the session record in the database. Rate-limited to 20 requests/minute.
     """
     try:
-        response = await ChatService.ask_question(db, session_id, document_id, request.question)
+        response = await ChatService.ask_question(
+            db=db, session_id=session_id, question=request.question, user_id=user_id
+        )
         return response
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in Chat with document session: {str(e)}")
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
-
-    except Exception as e:
-        logger.error(f"Exception occured in Chat with document: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
- 
-@router.patch("/{session_id}/attach/{document_id}")
-async def attach_document_to_session(
-    session_id: UUID, 
-    document_id: UUID, 
-    user_id: UUID = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_session)
-):
-    """
-    Links an existing document to an active chat session.
-
-    Args:
-        session_id (UUID): The unique identifier of the chat session.
-        document_id (UUID): The unique identifier of the document to be attached.
-        user_id (UUID): The unique identifier of the user
-        db (AsyncSession): Database session dependency.
-
-    Returns:
-        dict: A dictionary confirming the success of the link operation.
-    """
-    try:
-        await ChatService.update_document(db,user_id, session_id, document_id)
-        return {"status": "success", "message": "Document linked successfully"}
-    
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in attach document to session: {str(e)}")
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
-
-    except Exception as e:
-        logger.error(f"Exception occured in attach document to session: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.error("Exception in chat_with_session: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/sessions/{session_id}/rename")
 async def rename_chat_session(
-    session_id: UUID, 
-    request: SessionRenameRequest, 
-    user_id: UUID = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_session)
+    session_id: UUID,
+    request: SessionRenameRequest,
+    user_id: UUID = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ):
-    """
-    Updates the title of a specific chat session.
-
-    Args:
-        session_id (UUID): The unique identifier of the session to rename.
-        request (SessionRenameRequest): DTO containing the new title string.
-        user_id (UUID): The unique identifier of the user
-        db (AsyncSession): Database session dependency.
-
-    Returns:
-        dict: A dictionary containing the status and the updated session data.
-    """
+    """Updates the title of a specific chat session."""
     try:
-        result = await ChatService.update_session_title(db,user_id, session_id, request.title)
+        result = await ChatService.update_session_title(db, user_id, session_id, request.title)
         return {"status": "success", "data": result}
-    
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in rename chat session: {str(e)}")
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
-
-    except Exception as e:
-        logger.error(f"Exception occured in rename chat: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.error("Exception in rename_chat_session: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/sessions")
 async def create_new_session(
-    request: SessionCreate, 
-    user_id: UUID = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_session)
+    request: SessionCreate,
+    user_id: UUID = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ):
-    """
-    Creates a new chat session for a user.  
-
-    Args:
-        request (SessionCreate): DTO containing session title and optional document_id.
-        user_id (UUID): The unique identifier of the user.
-        db (AsyncSession): Database session dependency.
-
-    Returns:
-        dict: A dictionary containing the status and the newly created session object.
-    """
+    """Creates a new chat session for a user."""
     try:
         session = await ChatService.invoke_create_session(
-            db=db, 
-            user_id=user_id, 
+            db=db,
+            user_id=user_id,
             title=request.title,
-            document_id=request.document_id
+            document_id=request.document_id,
         )
-        return  {"status":"success", "session":session}
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in create new quiz session: {str(e)}")
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
-
-    except Exception as e:
-        logger.error(f"Exception occured in create new quiz: {str(e)}")
+        return {"status": "success", "session": session}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.error("Exception in create_new_session: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.delete("/sessions/bulk-delete")
 async def delete_chat_sessions(
-    session_ids:List[UUID], 
-    user_id: UUID = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_session)
+    session_ids: list[UUID],
+    user_id: UUID = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ):
-    """
-    Deletes multiple chat sessions in a single request.
-
-    Args:
-        request (BulkDeleteRequest): DTO containing a list of session_ids to delete.
-        user_id (UUID): The unique identifier of the user.
-        db (AsyncSession): Database session dependency.
-
-    Returns:
-        dict: A dictionary containing the status and result of the deletion process.
-    """
-    try:   
-        result = await ChatService.remove_sessions(db, user_id,session_ids )
+    """Deletes multiple chat sessions in a single request."""
+    try:
+        result = await ChatService.remove_sessions(db, user_id, session_ids)
         return {"status": "success", "data": result}
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in Delete Chat session: {str(e)}")
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
-
-    except Exception as e:
-        logger.error(f"Exception occured in Delete Chat: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.error("Exception in delete_chat_sessions: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/sessions/all")
-async def fetch_history(user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)):
-    """
-    Retrieves the complete chat session history for the current user. Current user is null for now
-
-    Args:
-        user_id (UUID): The unique identifier of the user
-        db (AsyncSession): Database session dependency.
-
-    Returns:
-        dict: A dictionary containing the status and a list of all chat sessions.
-    """
+async def fetch_history(
+    user_id: UUID = Depends(get_current_user), db: AsyncSession = Depends(get_async_session)  # noqa: B008
+):
+    """Retrieves the complete chat session history for the current user."""
     try:
         history = await ChatService.get_full_history(user_id, db)
         return {"status": "success", "sessions": history}
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in fetch quiz history session: {str(e)}")
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
-
-    except Exception as e:
-        logger.error(f"Exception occured in fetch quiz history session: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.error("Exception in fetch_history: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Legacy endpoints
+# @router.post("/{session_id}/{document_id}", include_in_schema=False)
+# async def chat_with_document_legacy(
+#     session_id: UUID,
+#     document_id: UUID,
+#     request: ChatRequest,
+#     user_id: UUID = Depends(RateLimiter(limit=20, window_seconds=60)),  # noqa: B008
+#     db: AsyncSession = Depends(get_async_session),  # noqa: B008
+# ):
+#     """Legacy backward-compatible endpoint accepting redundant document_id in path."""
+#     try:
+#         response = await ChatService.ask_question(
+#             db=db,
+#             session_id=session_id,
+#             question=request.question,
+#             document_id=document_id,
+#             user_id=user_id,
+#         )
+#         return response
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error("Exception in chat_with_document_legacy: %s", e)
+#         raise HTTPException(status_code=500, detail=str(e))
+
+

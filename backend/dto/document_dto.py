@@ -1,7 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
 from uuid import UUID
+
+from pydantic import BaseModel
+
 
 class DocumentRenameRequest(BaseModel):
     new_name: str
@@ -9,7 +10,7 @@ class DocumentRenameRequest(BaseModel):
 class DocumentResponse(BaseModel):
     id: UUID
     name: str
-    size: Optional[int] = 0
+    size: int | None = 0
     upload_date: datetime
 
 class DocumentCreate(BaseModel):
