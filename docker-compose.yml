@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   redis:
     image: redis:7-alpine
@@ -15,6 +13,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - studybuddy-network
 
   api:
     build:
@@ -22,6 +22,7 @@ services:
       dockerfile: Dockerfile
     container_name: studybuddy-api
     restart: always
+    init: true
     ports:
       - "8000:8000"
     depends_on:
@@ -29,6 +30,9 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - api_uploads:/app/uploads
+    env_file:
+      - ./backend/.env
     environment:
       # Redis Connection (Internal Docker Network)
       - REDIS_URL=redis://redis:6379/0
@@ -40,13 +44,28 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       # LLM & Embedding Providers
       - GROQ_API_KEY=${GROQ_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - EMBEDDING_KEY=${EMBEDDING_KEY}
       - MODAL_NAME=${MODAL_NAME:-llama-3.3-70b-versatile}
       # JWT Authentication
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - studybuddy-network
 
 volumes:
   redis_data:
     driver: local
+  api_uploads:
+    driver: local
+
+networks:
+  studybuddy-network:
+    driver: bridge

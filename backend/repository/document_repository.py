@@ -12,14 +12,13 @@ logger = logging.getLogger(__name__)
 
 class DocumentRepository:
     @staticmethod
-    async def create_document(db: AsyncSession, user_id: UUID, name: str, size: int, file_url: str) -> Document:
+    async def create_document(db: AsyncSession, user_id: UUID, name: str, file_url: str) -> Document:
         """Creates and persists a new Document record with binary content.
 
         Args:
             db (AsyncSession): Database session dependency.
             user_id (UUID): The unique identifier of the user who owns the document.
             name (str): The name of the file.
-            size (int): The file size in bytes.
             file_url (str): The storage URL of the file.
 
         Returns:
@@ -29,12 +28,16 @@ class DocumentRepository:
             Exception: If the insertion fails, triggering a session rollback.
         """
         try:
-            new_doc = Document(name=name, user_id=user_id, size=size, file_url=file_url)
+            # Step 1: Create Document model instance with metadata and storage URL
+            new_doc = Document(name=name, user_id=user_id, file_url=file_url)
+            # Step 2: Add document entity to database unit of work
             db.add(new_doc)
+            # Step 3: Commit transaction and refresh instance state
             await db.commit()
             await db.refresh(new_doc)
             return new_doc
         except Exception as e:
+            # Step 4: Rollback on error
             await db.rollback()
             logger.error("Error in repo create_document: %s", e)
             raise
@@ -52,12 +55,14 @@ class DocumentRepository:
             Document | None: The existing document instance if found, otherwise None.
         """
         try:
+            # Step 1: Query document table matching file URL and user ID
             result = await db.execute(
                 select(Document).where(
                     Document.file_url == file_url,
                     Document.user_id == user_id,
                 ).limit(1)
             )
+            # Step 2: Return first matched document or None
             return result.scalar_one_or_none()
         except Exception as e:
             logger.error("Error fetching document by url: %s", e)
@@ -74,9 +79,11 @@ class DocumentRepository:
             new_status (str): The new status string (e.g., 'READY', 'FAILED', 'PROCESSING').
         """
         try:
+            # Step 1: Execute status update statement on the target document
             await db.execute(
                 update(Document).where(Document.id == doc_id).values(status=new_status)
             )
+            # Step 2: Commit status change
             await db.commit()
         except Exception as e:
             await db.rollback()
@@ -98,9 +105,11 @@ class DocumentRepository:
             Exception: If the select query fails.
         """
         try:
+            # Step 1: Query user documents sorted by newest upload date first
             result = await db.execute(
                 select(Document).where(Document.user_id == user_id).order_by(Document.upload_date.desc())
             )
+            # Step 2: Return scalar list of documents
             return list(result.scalars().all())
         except Exception as e:
             logger.error("Error in repo get_all_documents: %s", e)
@@ -123,10 +132,12 @@ class DocumentRepository:
             Exception: If the update fails, triggering a session rollback.
         """
         try:
+            # Step 1: Fetch target document by doc_id and user_id
             result = await db.execute(
                 select(Document).where(Document.id == doc_id, Document.user_id == user_id)
             )
             doc: Any = result.scalar_one_or_none()
+            # Step 2: Apply new name and commit change if found
             if doc:
                 doc.name = new_name
                 await db.commit()
@@ -157,12 +168,15 @@ class DocumentRepository:
             Exception: If the batch delete fails, triggering a session rollback.
         """
         try:
+            # Step 1: Retrieve file storage URLs prior to database row deletion
             result = await db.execute(
                 select(Document.file_url).where(Document.id.in_(doc_ids), Document.user_id == user_id)
             )
             file_urls = result.scalars().all()
 
+            # Step 2: Delete document rows (foreign key cascades will drop chunk records)
             await db.execute(delete(Document).where(Document.id.in_(doc_ids)))
+            # Step 3: Commit deletion transaction
             await db.commit()
 
             return list(file_urls)
@@ -180,7 +194,9 @@ class DocumentRepository:
             chunks_data (list[DocumentChunk]): A list of DocumentChunk model instances to persist.
         """
         try:
+            # Step 1: Stage all DocumentChunk instances in a single unit of work
             db.add_all(chunks_data)
+            # Step 2: Commit batch insert transaction
             await db.commit()
         except Exception as e:
             await db.rollback()
@@ -209,12 +225,14 @@ class DocumentRepository:
             Exception: If the vector distance query fails.
         """
         try:
+            # Step 1: Query DocumentChunk using pgvector L2 distance operator
             query = (
                 select(DocumentChunk)
                 .where(DocumentChunk.document_id == document_id)
                 .order_by(DocumentChunk.embedding.l2_distance(query_vector))
                 .limit(limit)
             )
+            # Step 2: Execute query and extract sorted chunk results
             result = await db.execute(query)
             return list(result.scalars().all())
         except Exception as e:
@@ -239,7 +257,9 @@ class DocumentRepository:
             Exception: If the hash lookup fails.
         """
         try:
+            # Step 1: Query chunk table by unique content hash
             query = select(DocumentChunk).where(DocumentChunk.content_hash == content_hash)
+            # Step 2: Retrieve single matching chunk or None
             result = await db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
@@ -258,7 +278,9 @@ class DocumentRepository:
             Exception: If the bulk insertion fails, triggering a session rollback.
         """
         try:
+            # Step 1: Add chunk instances to database session
             db.add_all(chunks)
+            # Step 2: Commit chunk persistence to database
             await db.commit()
         except Exception as e:
             await db.rollback()

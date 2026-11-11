@@ -29,12 +29,14 @@ class QuizRepository:
             Any: The newly created quiz session object model instance.
         """
         try:
+            # Step 1: Instantiate QuizSession model with initial setup state
             new_session = QuizSession(
                 user_id=user_id,
                 title=title,
                 document_id=document_id,
                 questions=[],
             )
+            # Step 2: Add session to DB unit of work and commit transaction
             db.add(new_session)
             await db.commit()
             return new_session
@@ -61,9 +63,11 @@ class QuizRepository:
             int: The aggregate total of existing quiz sessions.
         """
         try:
+            # Step 1: Execute aggregate COUNT query filtering by user_id
             stmt = select(func.count(QuizSession.id)).where(QuizSession.user_id == user_id)
             result = await db.execute(stmt)
             count = result.scalar()
+            # Step 2: Return integer total
             return count or 0
 
         except Exception as e:
@@ -83,6 +87,7 @@ class QuizRepository:
             Any: The quiz session database record if found, otherwise None.
         """
         try:
+            # Step 1: Query QuizSession by session_id and user_id
             stmt = select(QuizSession).where(
                 QuizSession.id == session_id,
                 QuizSession.user_id == user_id,
@@ -90,8 +95,10 @@ class QuizRepository:
             result = await db.execute(stmt)
             session: Any = result.scalar_one_or_none()
 
+            # Step 2: Return None if session does not exist
             if not session:
                 return None
+            # Step 3: Refresh and populate question entities for active/completed quizzes
             if session.status in [QuizStatus.active, QuizStatus.completed, QuizStatus.grading]:
                 await db.refresh(session, attribute_names=["questions"])
             else:
@@ -115,10 +122,11 @@ class QuizRepository:
             list[Any]: A list of summarized quiz records containing tracking fields.
         """
         try:
+            # Step 1: Select lightweight summary columns (id, title, status) for sidebar
             stmt = select(QuizSession.id, QuizSession.title, QuizSession.status).where(
                 QuizSession.user_id == user_id
             )
-
+            # Step 2: Execute query and extract mapping records
             result = await db.execute(stmt)
             return list(result.mappings().all())
 
@@ -138,8 +146,10 @@ class QuizRepository:
             Any: The database reference model or None.
         """
         try:
+            # Step 1: Query Document record by document_id
             stmt = select(Document).where(Document.id == document_id)
             result = await db.execute(stmt)
+            # Step 2: Return matched document or None
             return result.scalar_one_or_none()
 
         except Exception as e:
@@ -162,12 +172,13 @@ class QuizRepository:
             bool: True if the update transaction execution was successful.
         """
         try:
+            # Step 1: Build update statement linking document_id to session
             query = (
                 update(QuizSession)
                 .where(QuizSession.id == session_id, QuizSession.user_id == user_id)
                 .values(document_id=document_id)
             )
-
+            # Step 2: Execute statement and commit transaction
             await db.execute(query)
             await db.commit()
             return True
@@ -190,11 +201,13 @@ class QuizRepository:
             bool: True if the update and database commit were successful.
         """
         try:
+            # Step 1: Build update statement setting new session title
             query = (
                 update(QuizSession)
                 .where(QuizSession.id == session_id, QuizSession.user_id == user_id)
                 .values(title=new_title)
             )
+            # Step 2: Execute query and commit transaction
             await db.execute(query)
             await db.commit()
             return True
@@ -224,10 +237,12 @@ class QuizRepository:
             Any: The repository layer response payload containing the modified record data.
         """
         try:
+            # Step 1: Assemble status and serialized setup_params payload
             update_data: dict[str, Any] = {"status": status}
 
             if quiz_params is not None:
                 update_data["setup_params"] = quiz_params.model_dump()
+            # Step 2: Execute update query returning updated session entity
             query = (
                 update(QuizSession)
                 .where(QuizSession.id == session_id, QuizSession.user_id == user_id)
@@ -236,6 +251,7 @@ class QuizRepository:
             )
             result = await db.execute(query)
             updated_session = result.scalars().first()
+            # Step 3: Commit database transaction
             await db.commit()
             return updated_session
         except Exception as e:
@@ -262,10 +278,12 @@ class QuizRepository:
             Any: The active quiz session entity containing new questions.
         """
         try:
+            # Step 1: Look up session ensuring user ownership
             session: Any = await QuizRepository.get_quiz_session_by_id(db, session_id, user_id)
             if not session:
                 return None
 
+            # Step 2: Convert questions_data dictionaries to QuizQuestion models
             questions_to_add = []
             for q in questions_data:
                 new_q = QuizQuestion(
@@ -276,9 +294,11 @@ class QuizRepository:
                 )
                 questions_to_add.append(new_q)
 
+            # Step 3: Add question batch and transition status to active
             db.add_all(questions_to_add)
             session.status = "active"
 
+            # Step 4: Commit changes and refresh instance
             await db.commit()
             await db.refresh(session)
             return session
@@ -307,11 +327,14 @@ class QuizRepository:
             Any: The updated quiz session containing persistent score metrics.
         """
         try:
+            # Step 1: Assign total score and transition status to completed
             session.score = total_score
             session.status = "completed"
 
+            # Step 2: Build lookup map for user answer evaluations
             eval_map = {str(ans["question_id"]): ans for ans in evaluated_answers}
 
+            # Step 3: Iterate through session questions and assign user answers and scores
             for question in session.questions:
                 q: Any = question
                 qid_str = str(q.id)
@@ -319,6 +342,7 @@ class QuizRepository:
                     ans_data = eval_map[qid_str]
                     q.user_answer = ans_data["user_answer"]
                     q.evaluation_score = 1.0 if ans_data["is_correct"] else 0.0
+            # Step 4: Save session, commit transaction, and refresh
             db.add(session)
             await db.commit()
             await db.refresh(session)
@@ -342,9 +366,12 @@ class QuizRepository:
             bool: True if the bulk removal transaction executed successfully.
         """
         try:
+            # Step 1: Execute bulk delete matching session IDs for user
             query = delete(QuizSession).where(
                 QuizSession.id.in_(session_ids), QuizSession.user_id == user_id
             )
+            print("Query:", query)
+            # Step 2: Commit transaction
             await db.execute(query)
             await db.commit()
             return True

@@ -2,9 +2,10 @@
 FROM python:3.12-slim
 
 # 1. Performance and environment flags
+# PYTHONPATH includes both /app and /app/backend to handle root and nested import statements
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH="/app:/app/backend"
 
 # 2. Install essential system dependencies (Poppler, ONNX/OpenCV runtime libraries, curl for healthchecks)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -34,12 +35,12 @@ COPY --chown=appuser:appuser . .
 
 USER appuser
 
-# 7. Expose default port
+# 7. Expose default API port
 EXPOSE 8000
 
-# 8. Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/docs || exit 1
+# 8. Lightweight container health check using the root health check endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
 
 # 9. Start Uvicorn production server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

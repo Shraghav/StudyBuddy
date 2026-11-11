@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 
+
 class GoogleAuthRequest(BaseModel):
     token: str
 class AuthRequest(BaseModel):

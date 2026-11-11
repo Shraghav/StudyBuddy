@@ -14,4 +14,3 @@ class AttachDocumentResponse(BaseModel):
     session_id: UUID
     document_id: UUID
     session_type: str
-

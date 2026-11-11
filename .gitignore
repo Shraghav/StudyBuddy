@@ -43,13 +43,12 @@ __pycache__/
 
 .env
 
-alembic.ini
-/alembic
-backend/alembic
-backend/practice.py
 
 materials
 DEPLOYMENT.md
 .vscode/
 .dockerignore
 tests
+get_token.py
+
+architecture_evaluation

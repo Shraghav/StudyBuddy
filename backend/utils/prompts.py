@@ -1,3 +1,4 @@
+# Step 1: System prompt definitions for AI assessment generation
 QUIZ_PROMPTS = {
     "GENERATION_SYSTEM": """You are an expert educational architect specialized in creating high-quality assessments from source documents.
 
