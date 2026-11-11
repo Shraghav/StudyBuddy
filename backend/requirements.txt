@@ -6,10 +6,11 @@ python-multipart
 PyJWT
 pwdlib[argon2]
 
-# Database & ORM
+# Database & ORM & Cache
 sqlalchemy[asyncio]
 asyncpg
 pgvector
+redis>=5.0.0
 
 # AI & LangChain
 langchain
@@ -23,11 +24,12 @@ pypdf
 pdf2image
 rapidocr_onnxruntime
 numpy
+pillow
 
 # Utilities & HTTP
 httpx
 python-dotenv
-logging
 
 # Testing
 pytest
+pytest-asyncio

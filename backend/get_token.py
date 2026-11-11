@@ -1,12 +1,18 @@
+import os
+
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+supabase_key=os.getenv("SUPABASE_KEY")
 
 url = "https://fobmuwhfmpsokrlptbgi.supabase.co/auth/v1/token?grant_type=password"
 headers = {
-    "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvYm11d2hmbXBzb2tybHB0YmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzIxMzgsImV4cCI6MjA4ODQ0ODEzOH0.4tsaTbGDEGVeVXga7EenAQd52RylsePfqfq6gu9a3v4",
+    "apikey": supabase_key ,
     "Content-Type": "application/json"
 }
 data = {
-    "email": "harishragavan04@gmail.com",
+    "email": "abc@gmail.com",
     "password": "Qwerty12345"
 }
 
@@ -18,12 +24,3 @@ if response.status_code == 200:
 else:
     print(f"Error: {response.status_code}")
     print(response.text)
-
-
-# import os
-
-from dotenv import load_dotenv
-import os
-load_dotenv()
-DATABASE_URL =  os.getenv("DATABASE_URL")
-print("Key:", DATABASE_URL)
