@@ -31,8 +31,6 @@ services:
     volumes:
       - ./backend:/app
       - api_uploads:/app/uploads
-    env_file:
-      - ./backend/.env
     environment:
       # Redis Connection (Internal Docker Network)
       - REDIS_URL=redis://redis:6379/0
@@ -44,12 +42,8 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       # LLM & Embedding Providers
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - EMBEDDING_KEY=${EMBEDDING_KEY}
-      - MODAL_NAME=${MODAL_NAME:-llama-3.3-70b-versatile}
-      # JWT Authentication
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - MODAL_NAME=${MODAL_NAME}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 15s
