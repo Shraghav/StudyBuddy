@@ -11,7 +11,7 @@ jobs:
     env:
       DATABASE_URL : ${{secrets.DATABASE_URL}}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      EMBEDDING_KEY: ${{ secrets.EMBEDDING_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       MODAL_NAME: ${{secrets.MODAL_NAME}}
       SUPABASE_URL: ${{secrets.SUPABASE_URL}}
       SUPABASE_KEY: ${{secrets.SUPABASE_KEY}}

@@ -133,9 +133,11 @@ async def delete_documents(doc_ids: list[UUID],user_id: UUID = Depends(RateLimit
     """
     try:
         # Step 1: Execute batch deletion of documents, chunks, and cached entries
-        success = await DocumentService.delete_files(db, user_id, doc_ids)
+        result = await DocumentService.delete_files(db, user_id, doc_ids)
         # Step 2: Return status payload
-        return DocumentBatchDeleteResponseDTO(success=success)
+        if result:
+            return DocumentBatchDeleteResponseDTO(status="Success", data=result )
+        return DocumentBatchDeleteResponseDTO(status="Failure", data=result)
     except HTTPException as e:
         # Step 3a: Handle known HTTP exceptions
         logger.error(f"HTTP Exception in delete documents: {e}")

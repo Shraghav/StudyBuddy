@@ -27,7 +27,7 @@ class DocumentService:
         try:
             # Step 1: Check if document already exists for this user to avoid redundant ingestion
             existing_doc = await DocumentRepository.get_document_by_url(db, user_id, file.file_url)
-            if existing_doc:
+            if existing_doc and str(existing_doc.status)!="FAILED":
                 return existing_doc
 
             # Step 2: Persist new document entity with initial PROCESSING state in database
@@ -42,6 +42,8 @@ class DocumentService:
                     "id": str(new_doc.id),
                     "name": str(new_doc.name),
                     "upload_date": new_doc.upload_date.isoformat() if getattr(new_doc, "upload_date", None) else None,
+                    "status":new_doc.status,
+                    "file_url":new_doc.file_url
                 },
             )
 
@@ -129,16 +131,19 @@ class DocumentService:
 
             # Step 2: Query database on cache miss
             docs = await DocumentRepository.get_all_documents(user_id, db)
-
+            
             # Step 3: Serialize documents and cache in Redis
             serialized = [
                 {
                     "id": str(d.id),
                     "name": str(d.name),
                     "upload_date": d.upload_date.isoformat() if bool(d.upload_date) else None,
+                    "status":d.status,
+                    "file_url":d.file_url
                 }
                 for d in docs
             ]
+            print("Serialized:", serialized)
             await CacheManager.set_json(cache_key, serialized)
             return docs
         except HTTPException:
@@ -161,7 +166,7 @@ class DocumentService:
             raise
 
     @staticmethod
-    async def delete_files(db: AsyncSession, user_id: UUID, doc_ids: list[UUID]) -> bool:
+    async def delete_files(db: AsyncSession, user_id: UUID, doc_ids: list[UUID]):
         """Deletes multiple documents and updates cache (Write-Through)."""
         try:
             # Step 1: Remove document records from database and collect storage URLs
@@ -180,7 +185,7 @@ class DocumentService:
 
             # Step 4: Evict deleted documents from Redis cache
             await CacheManager.remove_user_documents(user_id, doc_ids)
-            return True
+            return {"message": f"Successfully deleted {len(doc_ids)} documents"}
         except HTTPException:
             raise
         except Exception as e:

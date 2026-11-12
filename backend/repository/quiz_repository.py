@@ -4,7 +4,7 @@ from uuid import UUID
 
 from dto.enums import QuizStatus
 from dto.quiz_dto import QuizGenerationRequestDTO
-from repository.models import Document, QuizQuestion, QuizSession
+from repository.models import Document, DocumentChunk, QuizQuestion, QuizSession
 from sqlalchemy import delete, func, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -155,6 +155,27 @@ class QuizRepository:
         except Exception as e:
             logger.error("Error fetching Document url %s", e)
             raise
+
+    @staticmethod
+    async def get_document_chunks(db: AsyncSession, document_id: UUID) -> list[str]:
+        """Fetches all chunk text contents associated with a specific document.
+
+        Args:
+            db (AsyncSession): Asynchronous database session dependency.
+            document_id (UUID): The unique identifier of the target document.
+
+        Returns:
+            list[str]: Collection of text strings representing document chunks.
+        """
+        try:
+            # Step 1: Query DocumentChunk rows by document_id
+            stmt = select(DocumentChunk.text_content).where(DocumentChunk.document_id == document_id)
+            result = await db.execute(stmt)
+            # Step 2: Return list of chunk text contents
+            return list(result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error fetching Document chunks for {document_id}: {e}")
+            return []
 
     @staticmethod
     async def update_session_document(

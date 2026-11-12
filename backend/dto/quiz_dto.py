@@ -25,7 +25,7 @@ class QuizSetupResponseDTO(BaseModel):
 
 
 class QuizGenerationRequestDTO(BaseModel):
-    numQuestions: int = Field(..., gt=0, le=25, description="Number of questions to generate (1 to 25)", examples=[5])
+    numQuestions: int = Field(..., gt=0, le=20, description="Number of questions to generate (1 to 20)", examples=[5])
     difficulty: Literal["Easy", "Medium", "Hard"] = Field(..., description="Difficulty level for assessment generation", examples=["Medium"])
     customPrompt: str = Field(default="", max_length=500, description="Optional extra prompt guidance for question generation", examples=["Focus on 2NF and 3NF anomalies"])
 

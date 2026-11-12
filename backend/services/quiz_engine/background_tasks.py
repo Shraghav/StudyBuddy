@@ -1,9 +1,11 @@
 import asyncio
 import logging
+import random
 from uuid import UUID
 
 import httpx
 from dto.enums import QuizStatus
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from repository.database import async_session_maker
 from repository.quiz_repository import QuizRepository
 from services.quiz_engine.ai_handler import QuizAIHandler
@@ -12,6 +14,26 @@ from utils.caching.cache_manager import CacheManager
 from utils.ocr_processor import process_document
 
 logger = logging.getLogger(__name__)
+
+
+def select_random_chunks(
+    chunks: list[str],
+    num_questions: int = 5,
+    min_chunks: int = 4,
+    max_chunks: int = 10,
+) -> list[str]:
+    """Randomly selects a subset of chunks to reduce LLM token usage while preserving document flow."""
+    total = len(chunks)
+    if total <= min_chunks:
+        return chunks
+
+    # Dynamically scale target chunk count with requested questions (capped between min_chunks and max_chunks)
+    target_count = max(min_chunks, min(num_questions + 2, max_chunks))
+    target_count = min(target_count, total)
+
+    # Pick random indices and sort to maintain narrative order
+    selected_indices = sorted(random.sample(range(total), target_count))
+    return [chunks[i] for i in selected_indices]
 
 
 async def _extract_text_from_pdf_url(file_url: str, original_filename: str = "document.pdf") -> str:
@@ -35,7 +57,7 @@ async def _extract_text_from_pdf_url(file_url: str, original_filename: str = "do
 
 
 async def generate_quiz_task(session_id: UUID, user_id: UUID):
-    """Background task to generate quiz questions using Write-Through cached chunks or in-memory retrieval."""
+    """Background task to generate quiz questions using sampled chunks to optimize token usage."""
     async with async_session_maker() as db:
         try:
             await asyncio.sleep(1)
@@ -51,7 +73,13 @@ async def generate_quiz_task(session_id: UUID, user_id: UUID):
             if not document_data:
                 raise ValueError(f"Document or file URL missing for ID: {document_id}")
 
-            # Step 3: Retrieve text from Redis write-through cache or fallback to in-memory PDF extraction
+            # Parse num_questions to guide random chunk selection size
+            params = session.setup_params or {}
+            num_questions = int(params.get("numQuestions") or 5)
+
+
+            # Step 3: Retrieve text chunks (Redis cache -> DB pgvector chunks -> OCR fallback)
+            chunks: list[str] = []
             cached_chunks = await CacheManager.get_document_chunks(document_id)
             if cached_chunks:
                 logger.info(
@@ -59,20 +87,54 @@ async def generate_quiz_task(session_id: UUID, user_id: UUID):
                     len(cached_chunks),
                     document_id,
                 )
-                context_text = "\n\n".join(c["text_content"] for c in cached_chunks)
-            else:
-                logger.info("Cache miss for doc %s chunks, downloading in memory from storage", document_id)
-                context_text = await _extract_text_from_pdf_url(document_data.file_url, document_data.name)
+                chunks = [c["text_content"] for c in cached_chunks if c.get("text_content")]
 
-            if not context_text.strip():
+            if not chunks:
+                logger.info("Cache miss for doc %s chunks, checking database", document_id)
+                db_chunks = await QuizRepository.get_document_chunks(db, document_id)
+                if db_chunks:
+                    logger.info("Retrieved %s chunks from DB for doc %s", len(db_chunks), document_id)
+                    chunks = db_chunks
+                    try:
+                        await CacheManager.set_document_chunks(
+                            document_id,
+                            [{"id": i + 1, "text_content": t} for i, t in enumerate(db_chunks)],
+                        )
+                    except Exception as cache_err:  # noqa: BLE001
+                        logger.warning("Failed to repopulate Redis cache for doc %s: %s", document_id, cache_err)
+
+            if not chunks:
+                logger.info("Chunks missing in cache and DB for doc %s, downloading in memory from storage", document_id)
+                full_text = await _extract_text_from_pdf_url(document_data.file_url, document_data.name)
+                if full_text.strip():
+                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+                    chunks = text_splitter.split_text(full_text)
+
+            if not chunks or not any(c.strip() for c in chunks):
                 raise ValueError("Extracted document text was empty.")
 
-            # Step 4: Invoke AI model to generate structured question set from context text
+            # Step 4: Randomly sample chunks to minimize token consumption
+            selected_chunks = select_random_chunks(
+                chunks,
+                num_questions=num_questions,
+                min_chunks=4,
+                max_chunks=10,
+            )
+            logger.info(
+                "Sampled %s random chunks out of %s total chunks for quiz session %s (document %s)",
+                len(selected_chunks),
+                len(chunks),
+                session_id,
+                document_id,
+            )
+            context_text = "\n\n".join(selected_chunks)
+
+            # Step 5: Invoke AI model to generate structured question set from sampled context text
             questions_data = await QuizAIHandler.generate_questions(context_text, session.setup_params)
             if not questions_data:
                 raise ValueError("AI failed to generate any questions.")
 
-            # Step 5: Save generated questions and transition session status to active
+            # Step 6: Save generated questions and transition session status to active
             await QuizRepository.save_generated_questions(db, session_id, questions_data, user_id)
             logger.info(f"Successfully generated quiz for session {session_id}")
 
