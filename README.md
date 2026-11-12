@@ -77,7 +77,7 @@ docker compose up
 
 ### 2. Frontend (React Native via Expo)
 
-Before starting the mobile app, you need to point the frontend to your local backend.
+Before starting the mobile app, you need to point the frontend to your local 
 
 1. Navigate to the mobile directory.
 2. Open `apiclient.ts` and change the base URL to point to your local backend:

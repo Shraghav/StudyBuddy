@@ -17,7 +17,7 @@ from pydantic import SecretStr
 from repository.chat_repository import ChatRepository
 from repository.document_repository import DocumentRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.utils.caching.cache_manager import CacheManager
+from utils.caching.cache_manager import CacheManager
 from utils.prompts import CHAT_PROMPT
 
 load_dotenv()

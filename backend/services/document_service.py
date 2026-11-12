@@ -14,7 +14,7 @@ from repository.database import async_session_maker
 from repository.document_repository import DocumentRepository
 from repository.models import DocumentChunk
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.utils.caching.cache_manager import CacheManager
+from utils.caching.cache_manager import CacheManager
 from utils.ocr_processor import process_document
 from utils.supabase_utils import supabase
 

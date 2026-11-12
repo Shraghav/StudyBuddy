@@ -8,7 +8,7 @@ from repository.database import async_session_maker
 from repository.quiz_repository import QuizRepository
 from services.quiz_engine.ai_handler import QuizAIHandler
 from sqlalchemy.exc import SQLAlchemyError
-from backend.utils.caching.cache_manager import CacheManager
+from utils.caching.cache_manager import CacheManager
 from utils.ocr_processor import process_document
 
 logger = logging.getLogger(__name__)

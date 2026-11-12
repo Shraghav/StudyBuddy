@@ -3,7 +3,7 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from backend.utils.caching.redis_client import redis_client
+from utils.caching.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
 DEFAULT_CACHE_TTL = 900

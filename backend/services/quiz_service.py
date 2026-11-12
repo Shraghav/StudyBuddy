@@ -17,8 +17,7 @@ from pydantic import TypeAdapter
 from repository.quiz_repository import QuizRepository
 from services.quiz_engine.background_tasks import generate_quiz_task
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from backend.utils.caching.cache_manager import CacheManager
+from utils.caching.cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
 

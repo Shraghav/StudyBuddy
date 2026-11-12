@@ -19,8 +19,7 @@ from repository.database import get_async_session
 from services.document_service import DocumentService
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.jwt_utils import get_current_user
-
-from backend.utils.rate_limiter import RateLimiter
+from utils.rate_limiter import RateLimiter
 
 load_dotenv()
 logger = logging.getLogger(__name__)

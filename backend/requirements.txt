@@ -22,6 +22,7 @@ pypdf
 
 # OCR & PDF Processing
 pdf2image
+pymupdf
 rapidocr_onnxruntime
 numpy
 pillow

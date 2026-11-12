@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 
-from backend.utils.caching.redis_client import redis_client
+from utils.caching.redis_client import redis_client
 from utils.jwt_utils import get_current_user
 
 logger = logging.getLogger(__name__)

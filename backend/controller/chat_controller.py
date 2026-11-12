@@ -21,9 +21,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from repository.database import get_async_session
 from services.chat_service import ChatService
 from sqlalchemy.ext.asyncio import AsyncSession
+from utils.jwt_utils import get_current_user
 from utils.rate_limiter import RateLimiter
-
-from backend.utils.jwt_utils import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 logger = logging.getLogger(__name__)
