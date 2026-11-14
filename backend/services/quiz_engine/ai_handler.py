@@ -18,7 +18,7 @@ class QuizAIHandler:
         try:
             # Step 1: Load system generation prompt template
             template_str = QUIZ_PROMPTS["GENERATION_SYSTEM"]
-            print("Parameters in generate questions:", params)
+            print(f"[QUIZ AI HANDLER] Generating questions: difficulty='{params.get('difficulty', 'Medium')}', requested_count={params.get('numQuestions', 5)}, context_size={len(context_text):,} chars")
 
             # Step 2: Assemble template input parameters
             variables = {
@@ -34,24 +34,9 @@ class QuizAIHandler:
                 input_variables=variables
             )
         except Exception as e:
+            print(f"[QUIZ AI HANDLER] ERROR in generate_questions: {e}")
             logger.error(f"Error in generate_questions handler: {e}")
             raise
-
-    # @staticmethod
-    # async def evaluate_text_answers(questions_and_answers: list[dict[str, Any]], context_text: str) -> List[Dict[str, Any]]:
-    #     try:
-    #         template_str = QUIZ_PROMPTS["EVALUATION_SYSTEM"]
-    #         variables = {
-    #             "context": context_text, 
-    #             "submissions": json.dumps(questions_and_answers)
-    #         }
-    #         return await QuizAIHandler._execute_langchain_call(
-    #             template_str=template_str,
-    #             input_variables=variables
-    #         )
-    #     except Exception as e:
-    #         logger.error(f"Error in evaluate_text_answers handler: {e}")
-    #         raise e
 
     @staticmethod
     async def _execute_langchain_call(template_str: str, input_variables: dict[str, Any]) -> list[dict[str, Any]]:
@@ -60,32 +45,57 @@ class QuizAIHandler:
             # Step 1: Initialize ChatGroq client with low temperature
             modal_name = os.getenv("MODAL_NAME") or ""
             groq_api_key = os.getenv("GROQ_API_KEY")
+            print(f"[QUIZ AI HANDLER] Connecting to ChatGroq (model='{modal_name}', temperature=0.2)...")
             llm = ChatGroq(
                 model=modal_name,
                 temperature=0.2,
                 api_key=SecretStr(groq_api_key) if groq_api_key else None,
-                streaming=False ,
+                streaming=False,
             )
 
             # Step 2: Create prompt and invoke execution chain
             prompt = PromptTemplate.from_template(template_str)
             chain = prompt | llm
+            print(f"[QUIZ AI HANDLER] Invoking LLM chain with context prompt...")
             response = await chain.ainvoke(input_variables)
-            content = response.content.strip() # type: ignore
+            content = str(response.content).strip()
+            print(f"[QUIZ AI HANDLER] Received response from LLM ({len(content):,} characters). Parsing JSON payload...")
 
-            # Step 3: Extract structured JSON array from response content using regex
-            match = re.search(r'\[.*\]', content, re.DOTALL)
-            assert match is not None
-            json_str = match.group(0)
+            # Step 3: Strip markdown fences if present
+            content_clean = re.sub(r"^```(?:json)?\s*", "", content, flags=re.MULTILINE)
+            content_clean = re.sub(r"\s*```$", "", content_clean, flags=re.MULTILINE).strip()
+
+            # Extract structured JSON array from response content using regex
+            match = re.search(r'\[.*\]', content_clean, re.DOTALL)
+            if match:
+                json_str = match.group(0)
+            else:
+                json_str = content_clean
+
+            # Strip trailing commas inside arrays/objects
+            json_str = re.sub(r',\s*\]', ']', json_str)
+            json_str = re.sub(r',\s*\}', '}', json_str)
 
             # Step 4: Deserialize JSON payload into Python list
-            return json.loads(json_str)
+            parsed = json.loads(json_str)
+            questions: list[dict[str, Any]] = []
+            if isinstance(parsed, list):
+                questions = parsed
+            elif isinstance(parsed, dict) and "questions" in parsed and isinstance(parsed["questions"], list):
+                questions = parsed["questions"]
+            else:
+                questions = [parsed]
+            print(f"[QUIZ AI HANDLER] Successfully parsed {len(questions)} question objects from AI response")
+            return questions
         except OutputParserException as e:
+            print(f"[QUIZ AI HANDLER] Output Parser Error: {e}")
             logger.error(f"LangChain Output Parsing Error: {e}")
             raise 
         except json.JSONDecodeError as e:
+            print(f"[QUIZ AI HANDLER] JSON Decode Error: {e}")
             logger.error(f"Groq returned invalid JSON. Raw content: {content} - Error: {e}")
             raise 
         except Exception as e:
+            print(f"[QUIZ AI HANDLER] Unexpected Error during LLM chain execution: {e}")
             logger.error(f"Unexpected error in LangChain Groq execution: {e}")
             raise 

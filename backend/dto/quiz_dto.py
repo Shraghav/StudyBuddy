@@ -43,6 +43,7 @@ class QuizDeleteResponseDTO(BaseModel):
 class QuizSessionMinimalDTO(BaseModel):
     session_id: UUID = Field(..., description="Identifier of the quiz session", validation_alias=AliasChoices("session_id", "id"))
     title: str = Field(..., description="Title of the quiz session", examples=["SQL Joins Assessment"])
+    document_id: UUID | None = Field(default=None, description="Linked document identifier")
     status: QuizStatus = Field(..., description="Current status of the quiz session", examples=["setup"])
 
     model_config = ConfigDict(from_attributes=True)
@@ -57,6 +58,7 @@ class QuizQuestionActiveDTO(BaseModel):
 class QuizSessionActiveDTO(BaseModel):
     session_id: UUID = Field(..., description="Unique identifier of the active quiz session", validation_alias=AliasChoices("session_id", "id"))
     title: str = Field(..., description="Title of the quiz", examples=["SQL Joins Assessment"])
+    document_id: UUID | None = Field(default=None, description="Linked document identifier")
     status: Literal[QuizStatus.active] = Field(default=QuizStatus.active, description="Active status indicating readiness for answers")
     questions: list[QuizQuestionActiveDTO] = Field(default=[], description="List of generated questions available to solve")
 
@@ -64,7 +66,8 @@ class QuizSessionActiveDTO(BaseModel):
 
 
 class QuizQuestionCompletedDTO(BaseModel):
-    session_id: UUID = Field(..., description="Identifier of the question", validation_alias=AliasChoices("session_id", "id"))
+    id: UUID = Field(..., description="Identifier of the question", validation_alias=AliasChoices("id", "session_id"))
+    session_id: UUID | None = Field(default=None, description="Identifier of the question session")
     text: str = Field(..., description="Question text", examples=["Which normal form eliminates partial functional dependency?"])
     options: dict[str, Any] | None = Field(default=None, description="Available answer options", examples=[{"A": "1NF", "B": "2NF", "C": "3NF", "D": "BCNF"}])
     user_answer: str | None = Field(default=None, description="Answer submitted by the user", examples=["B"])
@@ -72,10 +75,13 @@ class QuizQuestionCompletedDTO(BaseModel):
     evaluation_score: float | None = Field(default=None, description="Score awarded for this question (1.0 or 0.0)", examples=[1.0])
     evaluation_feedback: str | None = Field(default=None, description="Feedback or explanation for the question")
 
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
 
 class QuizSessionCompletedDTO(BaseModel):
     session_id: UUID = Field(..., description="Identifier of the completed quiz session", validation_alias=AliasChoices("session_id", "id"))
     title: str = Field(..., description="Title of the quiz session", examples=["SQL Joins Assessment"])
+    document_id: UUID | None = Field(default=None, description="Linked document identifier")
     status: Literal[QuizStatus.completed] = Field(default=QuizStatus.completed, description="Completed status indicating graded state")
     score: int = Field(..., description="Total score achieved by the user", examples=[5])
     feedback: str = Field(default="", description="Overall performance feedback or evaluation summary", examples=["Great job on database normalization concepts!"])

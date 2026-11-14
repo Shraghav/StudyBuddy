@@ -128,13 +128,55 @@ class CacheManager:
             if cached is not None:
                 # Step 2: Filter out matching deleted IDs
                 del_set = {str(d) for d in doc_ids}
-                filtered = [d for d in cached if d.get("id") not in del_set]
+                filtered = [d for d in cached if str(d.get("id")) not in del_set]
                 # Step 3: Write back filtered list to Redis
                 await CacheManager.set_json(key, filtered)
                 logger.info("Write-Through: Removed %s documents from cache %s", len(doc_ids), key)
         except Exception as e:
             logger.error("Error in remove_user_documents: %s", e)
             raise
+
+    @staticmethod
+    async def update_user_document_status(user_id: UUID, doc_id: UUID, new_status: str) -> None:
+        """Write-Through: Updates the processing status of a document in the user's cached document list."""
+        try:
+            key = CacheManager.user_documents_key(user_id)
+            cached = await CacheManager.get_json(key)
+            if cached is not None:
+                target_id = str(doc_id)
+                updated = False
+                for doc in cached:
+                    if str(doc.get("id")) == target_id:
+                        doc["status"] = new_status
+                        updated = True
+                        break
+                if updated:
+                    await CacheManager.set_json(key, cached)
+                    logger.info("Write-Through: Updated status of doc %s to %s in cache", doc_id, new_status)
+                else:
+                    # Invalidate cache so next read pulls freshly committed status from DB
+                    await CacheManager.invalidate(key)
+            else:
+                await CacheManager.invalidate(key)
+        except Exception as e:
+            logger.error("Error in update_user_document_status: %s", e)
+
+    @staticmethod
+    async def update_user_document_name(user_id: UUID, doc_id: UUID, new_name: str) -> None:
+        """Write-Through: Updates document name in user's cached document list."""
+        try:
+            key = CacheManager.user_documents_key(user_id)
+            cached = await CacheManager.get_json(key)
+            if cached is not None:
+                target_id = str(doc_id)
+                for doc in cached:
+                    if str(doc.get("id")) == target_id:
+                        doc["name"] = new_name
+                        break
+                await CacheManager.set_json(key, cached)
+                logger.info("Write-Through: Updated name of doc %s to %s in cache", doc_id, new_name)
+        except Exception as e:
+            logger.error("Error in update_user_document_name: %s", e)
 
     @staticmethod
     async def add_user_chat_session(user_id: UUID, session_dict: dict[str, Any]) -> None:
@@ -144,6 +186,9 @@ class CacheManager:
             key = CacheManager.user_chat_history_key(user_id)
             cached = await CacheManager.get_json(key)
             if cached is not None:
+                # Ensure id is consistently present
+                if "session_id" in session_dict and "id" not in session_dict:
+                    session_dict["id"] = session_dict["session_id"]
                 # Step 2: Prepend new session to preserve sort order and write back
                 cached.insert(0, session_dict)
                 await CacheManager.set_json(key, cached)
@@ -163,7 +208,7 @@ class CacheManager:
                 # Step 2: Locate target session and append message
                 sid_str = str(session_id)
                 for s in cached:
-                    if s.get("id") == sid_str:
+                    if str(s.get("id")) == sid_str or str(s.get("session_id")) == sid_str:
                         s.setdefault("messages", []).append(msg_dict)
                         break
                 # Step 3: Persist modified history to cache
@@ -182,7 +227,10 @@ class CacheManager:
             if cached is not None:
                 # Step 2: Filter out removed session IDs and write back
                 del_set = {str(sid) for sid in session_ids}
-                filtered = [s for s in cached if s.get("id") not in del_set]
+                filtered = [
+                    s for s in cached
+                    if str(s.get("id")) not in del_set and str(s.get("session_id")) not in del_set
+                ]
                 await CacheManager.set_json(key, filtered)
                 logger.info("Write-Through: Removed %s sessions from cache %s", len(session_ids), key)
         except Exception as e:

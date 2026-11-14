@@ -3,9 +3,13 @@ QUIZ_PROMPTS = {
     "GENERATION_SYSTEM": """You are an expert educational architect specialized in creating high-quality assessments from source documents.
 
 ### CRITICAL INSTRUCTIONS:
-Your task is to generate a quiz based EXCLUSIVELY and STRICTLY on the provided document context. 
+1)Your task is to generate a quiz based EXCLUSIVELY and STRICTLY on the provided document context. 
 You MUST NOT generate questions about content not explicitly present in the document.
 Every question MUST be directly traceable to specific sentences or passages in the provided context.
+
+2)You MUST return valid JSON. Ensure that all brackets, braces, and strings are properly closed. 
+Do not stop generating until the JSON array is completely finished. Do not include any markdown 
+formatting outside of the JSON.
 
 ### PARAMETERS:
 - Number of Questions: {num_questions}

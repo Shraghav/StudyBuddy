@@ -125,12 +125,12 @@ class RedisClientManager:
             client = aioredis.from_url(
                 self.url,
                 decode_responses=True,
-                socket_timeout=1.0,
-                socket_connect_timeout=1.0,
-                retry_on_timeout=False,
+                socket_timeout=5.0,
+                socket_connect_timeout=5.0,
+                retry_on_timeout=True,
                 **ssl_kwargs,
             )
-            await asyncio.wait_for(client.ping(), timeout=1.0)
+            await asyncio.wait_for(client.ping(), timeout=5.0)
             self._redis = client
             logger.info("Connected to Redis successfully at %s", self.url)
             return self._redis
@@ -148,7 +148,7 @@ class RedisClientManager:
             return await client.get(key)
         except Exception as e:  # noqa: BLE001
             # Step 2: Fall back to in-memory cache on error
-            logger.error("Redis get failed for %s: %s, falling back to memory", key, e)
+            logger.warning("Redis get failed for %s: %s, falling back to memory", key, e)
             return await self._fallback.get(key)
 
     async def set(self, key: str, value: str, ex: int | None = None) -> bool:
@@ -158,7 +158,7 @@ class RedisClientManager:
             return await client.set(key, value, ex=ex)
         except Exception as e:  # noqa: BLE001
             # Step 2: Fall back to in-memory cache on error
-            logger.error("Redis set failed for %s: %s, falling back to memory", key, e)
+            logger.warning("Redis set failed for %s: %s, falling back to memory", key, e)
             return await self._fallback.set(key, value, ex=ex)
 
     async def delete(self, *keys: str) -> int:

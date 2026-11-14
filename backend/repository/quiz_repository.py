@@ -122,8 +122,8 @@ class QuizRepository:
             list[Any]: A list of summarized quiz records containing tracking fields.
         """
         try:
-            # Step 1: Select lightweight summary columns (id, title, status) for sidebar
-            stmt = select(QuizSession.id, QuizSession.title, QuizSession.status).where(
+            # Step 1: Select lightweight summary columns (id, title, status, document_id) for sidebar
+            stmt = select(QuizSession.id, QuizSession.title, QuizSession.status, QuizSession.document_id).where(
                 QuizSession.user_id == user_id
             )
             # Step 2: Execute query and extract mapping records
@@ -307,11 +307,14 @@ class QuizRepository:
             # Step 2: Convert questions_data dictionaries to QuizQuestion models
             questions_to_add = []
             for q in questions_data:
+                q_text = q.get("text") or q.get("question") or q.get("question_text") or "Assessment Question"
+                q_options = q.get("options") or {}
+                q_correct = q.get("correct_answer") or q.get("answer") or "A"
                 new_q = QuizQuestion(
                     quiz_session_id=session_id,
-                    text=q["text"],
-                    options=q.get("options"),
-                    correct_answer=q["correct_answer"],
+                    text=str(q_text),
+                    options=q_options,
+                    correct_answer=str(q_correct),
                 )
                 questions_to_add.append(new_q)
 

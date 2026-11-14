@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class SessionCreate(BaseModel):
@@ -55,10 +55,13 @@ class ChatMessageItemDTO(BaseModel):
 
 
 class ChatHistorySessionDTO(BaseModel):
-    id: str = Field(..., description="Unique identifier of the chat session")
+    id: str = Field(..., validation_alias=AliasChoices("id", "session_id"), description="Unique identifier of the chat session")
     title: str = Field(..., description="Title of the session", examples=["DBMS Revision"])
+    document_id: str | None = Field(default=None, description="Identifier of the linked document")
     attachedDocName: str | None = Field(default="No document attached", description="Name of the attached document", examples=["DBMS_Cheatsheet.pdf"])
     messages: list[ChatMessageItemDTO] = Field(default=[], description="Chronological list of chat messages")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ChatHistoryResponseDTO(BaseModel):
